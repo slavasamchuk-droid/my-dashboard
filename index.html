@@ -87,7 +87,7 @@
   }
   .dd-ticker-wrap{
     overflow:hidden;
-    max-width:320px;
+    width:320px;
     position:relative;
     height:16px;
     opacity:0;
@@ -508,47 +508,13 @@
   По aliases тоже работает поиск, так что можно найти англоязычный
   сервис, даже если написать его название по-русски.
 */
-const linksData = [
-  {
-    name: "Продажи и стратегия",
-    links: [
-      { title: "Стратегия продаж Ростов", url: "https://docs.google.com/spreadsheets/d/10eSjj568J0XR1uFY3rkQWbiDwPlAXCWdgRAuOAOhQVc/edit?usp=sharing" },
-      { title: "Стратегия продаж Мариуполь", url: "https://docs.google.com/spreadsheets/d/1bqMaRzdhRb_LafLGDFkRXK_Y9M35-Fbm71NBUNncZQ0/edit" },
-      { title: "Бюджет Ростов", url: "https://docs.google.com/spreadsheets/d/1SjqmMrg-_RCan_Yu2OWmNZ2CqkI1N1F1w9z8BZq3EO4/edit?usp=sharing" },
-      { title: "Внебюджет Ростов", url: "https://docs.google.com/spreadsheets/d/1SjqmMrg-_RCan_Yu2OWmNZ2CqkI1N1F1w9z8BZq3EO4/edit?gid=1186820839#gid=1186820839" },
-      { title: "Активности", url: "https://docs.google.com/spreadsheets/d/1kLE3EIPY51yNDf8u-cM5rCIinrrjpAJ1egthysZcQrs/edit?gid=147658334#gid=147658334" },
-    ]
-  },
-  {
-    name: "Аналитика",
-    links: [
-      { title: "Пульс продаж", url: "https://usireports.int3grat.ru/" },
-      { title: "Сравнительный анализ (логин МаркРНД / пароль 912345)", url: "https://docs.google.com/spreadsheets/d/1r0rhVe54mvrxRPyFudTS_bN5R4ej30rs/edit?gid=471470145#gid=471470145" },
-      { title: "DataLens 1", url: "https://datalens.yandex/lvuz2o2ewy4i5" },
-      { title: "ALIO", url: "https://datalens.yandex/7hbx8my5wswmr" },
-      { title: "Ежедневный отчёт по лидам", url: "https://docs.google.com/spreadsheets/d/1M2p077y0H__aGc_N732JtBbFipgxsvPVSn2Y5_MuRmg/edit?pli=1&gid=493905218#gid=493905218" },
-      { title: "Аналитика лиды и креативы", url: "https://docs.google.com/spreadsheets/d/1DvKe_2r8tzeMZ17W1hH2W2LKxCSxjBH9Ho2jCvaP64w/edit?gid=116417470#gid=116417470" },
-    ]
-  },
-  {
-    name: "Документы",
-    links: [
-      { title: "Буклеты", url: "https://docs.google.com/spreadsheets/d/1ZDtCmYiTkr0X4AL4W2z-mMg54p_-XVz57uxESf4jxgU/edit?gid=0#gid=0" },
-      { title: "Методички", url: "https://docs.google.com/spreadsheets/d/15WCyRFhs11ofmGrFTIkuTWTrnrko3sjzI92iVB1ma2Q/edit?gid=204396947#gid=204396947" },
-      { title: "Стандарты должностей", url: "https://docs.google.com/spreadsheets/d/1Gi4LZKqRSO3fFbW6uj37HnpKNDne3-R8rt8AuBd6meo/edit?usp=sharing" },
-      { title: "База подрядчиков", url: "https://docs.google.com/spreadsheets/d/1pRK60GPWa_N8mzIYqO1yYV7KnxQfnNxMZueyBXJQPO4/edit?usp=sharing" },
-    ]
-  },
-  {
-    name: "Личные инструменты",
-    links: [
-      { title: "Мой Битрикс", url: "https://marketing93.bitrix24.ru/stream/" },
-      { title: "Мой Яндекс.Диск", url: "https://disk.yandex.ru/client/disk" },
-      { title: "Мой Max", url: "https://web.max.ru/-75476892370371" },
-      { title: "Тудуист", url: "https://todoist.raulpevadze.com/", aliases: ["тудуист"] },
-    ]
-  }
-];
+/*
+  Ссылки теперь читаются напрямую из Google Таблицы "Ссылки для дашборда":
+  https://docs.google.com/spreadsheets/d/1xM2j5tKaIIN-nFhj9z9uNU1-1u3pQFflHJBslLlHI00/edit
+  Колонки: category, title, url — просто добавляй новую строку в таблицу,
+  категория группируется автоматически по первому столбцу.
+*/
+let linksData = [];
 
 function initialOf(title){
   return title.trim().charAt(0).toUpperCase();
@@ -704,18 +670,42 @@ function findMonthIndex(cellText){
   return null;
 }
 
-function handleRoadmapData(resp){
+function parseCSV(text){
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i = 0; i < text.length; i++){
+    const ch = text[i];
+    if(inQuotes){
+      if(ch === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++; }
+        else { inQuotes = false; }
+      } else field += ch;
+    } else {
+      if(ch === '"') inQuotes = true;
+      else if(ch === ','){ row.push(field); field = ''; }
+      else if(ch === '\n'){ row.push(field); rows.push(row); row = []; field = ''; }
+      else if(ch === '\r'){ /* пропускаем */ }
+      else field += ch;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+
+function processRoadmapCSV(text){
   try{
-    const rows = resp.table.rows.map(r => (r.c || []).map(c => (c && (c.f || c.v) != null) ? String(c.f || c.v) : ''));
+    const rows = parseCSV(text);
+    console.log('[roadmap] всего строк:', rows.length);
     if(!rows.length) return;
 
     let monthRow = -1;
     for(let i = 0; i < rows.length; i++){
       if(rows[i].some(cell => findMonthIndex(cell) !== null)){ monthRow = i; break; }
     }
-    if(monthRow === -1) return;
+    if(monthRow === -1){ console.error('[roadmap] не нашёл строку с названием месяца'); return; }
     const dayRow = monthRow + 1;
-    if(!rows[dayRow]) return;
+    if(!rows[dayRow]){ console.error('[roadmap] нет строки с числами дней после строки месяцев'); return; }
+    console.log('[roadmap] строка месяцев:', monthRow, 'строка дней:', dayRow);
 
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -757,20 +747,27 @@ function handleRoadmapData(resp){
       }
     }
 
+    console.log('[roadmap] начало данных со строки:', dataStart, '/ найдено маркеров "!":', matches.length, matches);
+
     const upcoming = matches
       .filter(m => m.date >= today)
       .sort((a, b) => a.date - b.date);
+
+    console.log('[roadmap] будущих событий:', upcoming.length, upcoming);
 
     if(upcoming.length){
       tickerMessages = upcoming.map(m => {
         const days = Math.round((m.date - today) / 86400000);
         return `До мероприятия «${m.name}» осталось ${days} ${pluralDays(days)}`;
       });
+      console.log('[roadmap] сообщения тикера:', tickerMessages);
       document.getElementById('ddSep').style.display = 'block';
       showNextTicker();
+    } else {
+      console.warn('[roadmap] маркеры есть, но все даты в прошлом либо не распознаны');
     }
   }catch(e){
-    /* тихо ничего не показываем, если структура таблицы не совпала */
+    console.error('[roadmap] ошибка разбора:', e);
   }
 }
 
@@ -815,13 +812,86 @@ function loadRoadmap(){
   window.google = window.google || {};
   window.google.visualization = window.google.visualization || {};
   window.google.visualization.Query = window.google.visualization.Query || {};
-  window.google.visualization.Query.setResponse = window.google.visualization.Query.setResponse || function(resp){ handleRoadmapData(resp); };
+  window.google.visualization.Query.setResponse = function(resp){
+    console.log('[roadmap] получен ответ от таблицы:', resp);
+    if(!resp || resp.status !== 'ok'){
+      console.error('[roadmap] таблица вернула ошибку:', resp && (resp.errors || resp.status));
+      return;
+    }
+    const rows = resp.table.rows.map(r => (r.c || []).map(c => (c && (c.f || c.v) != null) ? String(c.f || c.v) : ''));
+    const csvLike = rows.map(r => r.map(v => `"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    processRoadmapCSV(csvLike);
+  };
+
   const script = document.createElement('script');
-  script.src = `https://docs.google.com/spreadsheets/d/${ROADMAP_SHEET_ID}/gviz/tq?gid=${ROADMAP_GID}&headers=0&tqx=out:json;responseHandler:handleRoadmapData`;
-  script.onerror = () => {};
+  script.src = `https://docs.google.com/spreadsheets/d/${ROADMAP_SHEET_ID}/gviz/tq?gid=${ROADMAP_GID}&headers=0&tqx=out:json`;
+  console.log('[roadmap] загружаю (JSONP):', script.src);
+  script.onload = () => console.log('[roadmap] скрипт загружен успешно');
+  script.onerror = (e) => console.error('[roadmap] скрипт НЕ загрузился:', e);
   document.body.appendChild(script);
 }
-loadRoadmap();
+
+const LINKS_SHEET_ID = '1xM2j5tKaIIN-nFhj9z9uNU1-1u3pQFflHJBslLlHI00';
+const LINKS_GID = '0';
+
+function processLinksCSV(text){
+  try{
+    const rows = parseCSV(text).filter(r => r.some(cell => cell && cell.trim()));
+    if(!rows.length){ console.warn('[links] таблица пуста'); return; }
+
+    const header = rows[0].map(h => (h || '').trim().toLowerCase());
+    let ci = header.indexOf('category'), ti = header.indexOf('title'), ui = header.indexOf('url');
+    let dataRows = rows;
+    if(ci !== -1 && ti !== -1 && ui !== -1){
+      dataRows = rows.slice(1);
+    } else {
+      ci = 0; ti = 1; ui = 2;
+    }
+
+    const map = new Map();
+    dataRows.forEach(r => {
+      const cat = (r[ci] || '').trim();
+      const title = (r[ti] || '').trim();
+      const url = (r[ui] || '').trim();
+      if(!cat || !title || !url) return;
+      if(!map.has(cat)) map.set(cat, []);
+      map.get(cat).push({ title, url });
+    });
+
+    linksData = Array.from(map.entries()).map(([name, links]) => ({ name, links }));
+    console.log('[links] загружено категорий:', linksData.length, linksData);
+    applySavedOrder();
+    render(currentQuery);
+  }catch(e){
+    console.error('[links] ошибка разбора:', e);
+  }
+}
+
+function loadLinksData(){
+  window.google = window.google || {};
+  window.google.visualization = window.google.visualization || {};
+  window.google.visualization.Query = window.google.visualization.Query || {};
+  window.google.visualization.Query.setResponse = function(resp){
+    console.log('[links] получен ответ от таблицы:', resp);
+    if(!resp || resp.status !== 'ok'){
+      console.error('[links] таблица вернула ошибку:', resp && (resp.errors || resp.status));
+      loadRoadmap();
+      return;
+    }
+    const rows = resp.table.rows.map(r => (r.c || []).map(c => (c && (c.f || c.v) != null) ? String(c.f || c.v) : ''));
+    const csvLike = rows.map(r => r.map(v => `"${(v || '').replace(/"/g,'""')}"`).join(',')).join('\n');
+    processLinksCSV(csvLike);
+    loadRoadmap();
+  };
+
+  const script = document.createElement('script');
+  script.src = `https://docs.google.com/spreadsheets/d/${LINKS_SHEET_ID}/gviz/tq?gid=${LINKS_GID}&headers=0&tqx=out:json`;
+  console.log('[links] загружаю (JSONP):', script.src);
+  script.onload = () => console.log('[links] скрипт загружен успешно');
+  script.onerror = (e) => { console.error('[links] скрипт НЕ загрузился:', e); loadRoadmap(); };
+  document.body.appendChild(script);
+}
+loadLinksData();
 
 document.getElementById('searchInput').addEventListener('input', (e) => {
   currentQuery = e.target.value;
