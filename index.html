@@ -715,14 +715,22 @@ function handleRoadmapData(resp){
     const baseYear = today.getFullYear();
 
     const colDate = {};
-    let curMonth = null, year = baseYear, prevMonth = null;
+    let curMonth = null, year = baseYear, prevMonth = null, prevDay = null;
     for(let c = 0; c < rows[monthRow].length; c++){
-      const m = findMonthIndex(rows[monthRow][c]);
-      if(m !== null) curMonth = m;
+      const labelMonth = findMonthIndex(rows[monthRow][c]);
       const dayVal = parseInt(rows[dayRow][c], 10);
-      if(curMonth === null || isNaN(dayVal)) continue;
+      if(isNaN(dayVal)){ prevDay = null; continue; }
+
+      if(labelMonth !== null){
+        curMonth = labelMonth;
+      } else if(curMonth !== null && prevDay !== null && dayVal < prevDay){
+        curMonth = (curMonth + 1) % 12;
+      }
+      if(curMonth === null){ prevDay = dayVal; continue; }
+
       if(prevMonth !== null && curMonth < prevMonth) year++;
       prevMonth = curMonth;
+      prevDay = dayVal;
       colDate[c] = new Date(year, curMonth, dayVal);
     }
 
@@ -777,8 +785,12 @@ function showNextTicker(){
 }
 
 function loadRoadmap(){
+  window.google = window.google || {};
+  window.google.visualization = window.google.visualization || {};
+  window.google.visualization.Query = window.google.visualization.Query || {};
+  window.google.visualization.Query.setResponse = window.google.visualization.Query.setResponse || function(resp){ handleRoadmapData(resp); };
   const script = document.createElement('script');
-  script.src = `https://docs.google.com/spreadsheets/d/${ROADMAP_SHEET_ID}/gviz/tq?gid=${ROADMAP_GID}&headers=0&tqx=out:json;responseHandler=handleRoadmapData`;
+  script.src = `https://docs.google.com/spreadsheets/d/${ROADMAP_SHEET_ID}/gviz/tq?gid=${ROADMAP_GID}&headers=0&tqx=out:json;responseHandler:handleRoadmapData`;
   script.onerror = () => {};
   document.body.appendChild(script);
 }
