@@ -36,12 +36,37 @@
     -webkit-font-smoothing:antialiased;
     transition:background .3s ease, color .3s ease;
   }
+  .reorder-toggle{
+    position:fixed;
+    top:20px;
+    right:58px;
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    border:1px solid var(--border);
+    background:var(--panel);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    color:var(--text-secondary);
+    transition:background .2s, color .2s;
+  }
+  .reorder-toggle:hover{
+    color:var(--text);
+  }
+  .reorder-toggle.active{
+    background:var(--accent-soft);
+    color:var(--accent);
+    border-color:var(--accent);
+  }
+
   .theme-toggle{
     position:fixed;
     top:20px;
     right:20px;
-    width:38px;
-    height:38px;
+    width:30px;
+    height:30px;
     border-radius:50%;
     border:1px solid var(--border);
     background:var(--panel);
@@ -98,9 +123,38 @@
     margin:0;
   }
 
+  .search-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    margin-top:28px;
+  }
+  .quick-create{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:38px;
+    height:38px;
+    flex-shrink:0;
+    border-radius:12px;
+    background:rgba(118,118,128,0.08);
+    color:var(--text-secondary);
+    text-decoration:none;
+    transition:background .15s, color .15s;
+  }
+  .quick-create:hover{
+    background:rgba(118,118,128,0.14);
+  }
+  .quick-create.sheet-btn:hover{
+    color:#1e8e3e;
+  }
+  .quick-create.doc-btn:hover{
+    color:#1a73e8;
+  }
   .search-wrap{
     max-width:420px;
-    margin:28px auto 0;
+    width:100%;
     position:relative;
   }
   .search-wrap svg{
@@ -126,6 +180,29 @@
   input#searchInput::placeholder{color:var(--text-tertiary);}
 
   section.category{margin-bottom:32px;}
+  section.category.draggable{
+    cursor:grab;
+    border-radius:12px;
+    transition:background .15s, box-shadow .15s;
+    padding:8px;
+    margin-left:-8px;
+    margin-right:-8px;
+  }
+  section.category.draggable:hover{
+    background:rgba(118,118,128,0.06);
+  }
+  section.category.dragging{
+    opacity:0.4;
+  }
+  section.category.drag-over{
+    box-shadow:0 0 0 2px var(--accent);
+  }
+  .drag-handle{
+    color:var(--text-tertiary);
+    margin-right:6px;
+    display:inline-flex;
+    vertical-align:-3px;
+  }
   .cat-title{
     font-size:13px;
     font-weight:600;
@@ -217,12 +294,16 @@
 </head>
 <body>
 
+<button class="reorder-toggle" id="reorderToggle" title="Изменить порядок разделов" aria-label="Изменить порядок разделов">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"></polyline><polyline points="9 5 12 2 15 5"></polyline><polyline points="15 19 12 22 9 19"></polyline><polyline points="19 9 22 12 19 15"></polyline><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>
+</button>
+
 <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
   <span class="icon icon-moon">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path></svg>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path></svg>
   </span>
   <span class="icon icon-bulb">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="10" r="4.5"></circle>
       <path d="M10 7.7 Q8.3 9 8.6 11.8"></path>
       <path d="M9.3 15.5h5.4"></path>
@@ -241,9 +322,17 @@
 
 <div class="wrap">
   <header>
-    <div class="search-wrap">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <input id="searchInput" type="text" placeholder="Поиск ссылки">
+    <div class="search-row">
+      <a class="quick-create sheet-btn" href="https://sheets.new" target="_blank" rel="noopener noreferrer" title="Создать Google Таблицу" aria-label="Создать Google Таблицу">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+      </a>
+      <a class="quick-create doc-btn" href="https://docs.new" target="_blank" rel="noopener noreferrer" title="Создать Google Документ" aria-label="Создать Google Документ">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+      </a>
+      <div class="search-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input id="searchInput" type="text" placeholder="Поиск ссылки">
+      </div>
     </div>
   </header>
 
@@ -263,40 +352,78 @@
 */
 const linksData = [
   {
-    name: "Работа",
+    name: "Продажи и стратегия",
     links: [
-      { title: "Почта", url: "https://mail.google.com" },
-      { title: "Календарь", url: "https://calendar.google.com" },
-      { title: "Трекер задач", url: "https://todoist.com", aliases: ["тудуист"] },
-      { title: "Диск", url: "https://drive.google.com" },
+      { title: "Стратегия продаж Ростов", url: "https://docs.google.com/spreadsheets/d/10eSjj568J0XR1uFY3rkQWbiDwPlAXCWdgRAuOAOhQVc/edit?usp=sharing" },
+      { title: "Стратегия продаж Мариуполь", url: "https://docs.google.com/spreadsheets/d/1bqMaRzdhRb_LafLGDFkRXK_Y9M35-Fbm71NBUNncZQ0/edit" },
+      { title: "Бюджет Ростов", url: "https://docs.google.com/spreadsheets/d/1SjqmMrg-_RCan_Yu2OWmNZ2CqkI1N1F1w9z8BZq3EO4/edit?usp=sharing" },
+      { title: "Внебюджет Ростов", url: "https://docs.google.com/spreadsheets/d/1SjqmMrg-_RCan_Yu2OWmNZ2CqkI1N1F1w9z8BZq3EO4/edit?gid=1186820839#gid=1186820839" },
+      { title: "Активности", url: "https://docs.google.com/spreadsheets/d/1kLE3EIPY51yNDf8u-cM5rCIinrrjpAJ1egthysZcQrs/edit?gid=147658334#gid=147658334" },
     ]
   },
   {
-    name: "Инструменты",
+    name: "Аналитика",
     links: [
-      { title: "GitHub", url: "https://github.com", aliases: ["гитхаб", "гит"] },
-      { title: "Figma", url: "https://figma.com", aliases: ["фигма"] },
-      { title: "Notion", url: "https://notion.so", aliases: ["ноушен", "нотион"] },
+      { title: "Пульс продаж", url: "https://usireports.int3grat.ru/" },
+      { title: "Сравнительный анализ (логин МаркРНД / пароль 912345)", url: "https://docs.google.com/spreadsheets/d/1r0rhVe54mvrxRPyFudTS_bN5R4ej30rs/edit?gid=471470145#gid=471470145" },
+      { title: "DataLens 1", url: "https://datalens.yandex/lvuz2o2ewy4i5" },
+      { title: "ALIO", url: "https://datalens.yandex/7hbx8my5wswmr" },
+      { title: "Ежедневный отчёт по лидам", url: "https://docs.google.com/spreadsheets/d/1M2p077y0H__aGc_N732JtBbFipgxsvPVSn2Y5_MuRmg/edit?pli=1&gid=493905218#gid=493905218" },
+      { title: "Аналитика лиды и креативы", url: "https://docs.google.com/spreadsheets/d/1DvKe_2r8tzeMZ17W1hH2W2LKxCSxjBH9Ho2jCvaP64w/edit?gid=116417470#gid=116417470" },
     ]
   },
   {
-    name: "Обучение",
+    name: "Документы",
     links: [
-      { title: "Курс по SQL", url: "https://example.com/sql-course" },
-      { title: "Документация", url: "https://docs.example.com" },
+      { title: "Буклеты", url: "https://docs.google.com/spreadsheets/d/1ZDtCmYiTkr0X4AL4W2z-mMg54p_-XVz57uxESf4jxgU/edit?gid=0#gid=0" },
+      { title: "Методички", url: "https://docs.google.com/spreadsheets/d/15WCyRFhs11ofmGrFTIkuTWTrnrko3sjzI92iVB1ma2Q/edit?gid=204396947#gid=204396947" },
+      { title: "Стандарты должностей", url: "https://docs.google.com/spreadsheets/d/1Gi4LZKqRSO3fFbW6uj37HnpKNDne3-R8rt8AuBd6meo/edit?usp=sharing" },
+      { title: "База подрядчиков", url: "https://docs.google.com/spreadsheets/d/1pRK60GPWa_N8mzIYqO1yYV7KnxQfnNxMZueyBXJQPO4/edit?usp=sharing" },
     ]
   },
   {
-    name: "Разное",
+    name: "Личные инструменты",
     links: [
-      { title: "Погода", url: "https://weather.com" },
-      { title: "Новости", url: "https://news.example.com" },
+      { title: "Мой Битрикс", url: "https://marketing93.bitrix24.ru/stream/" },
+      { title: "Мой Яндекс.Диск", url: "https://disk.yandex.ru/client/disk" },
+      { title: "Мой Max", url: "https://web.max.ru/-75476892370371" },
+      { title: "Тудуист", url: "https://todoist.raulpevadze.com/", aliases: ["тудуист"] },
     ]
   }
 ];
 
 function initialOf(title){
   return title.trim().charAt(0).toUpperCase();
+}
+
+const ORDER_KEY = 'dashboardCategoryOrder';
+let reorderMode = false;
+let currentQuery = '';
+let draggedName = null;
+
+function applySavedOrder(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
+    if(Array.isArray(saved) && saved.length){
+      linksData.sort((a, b) => saved.indexOf(a.name) - saved.indexOf(b.name));
+    }
+  }catch(e){}
+}
+
+function saveOrder(){
+  try{
+    localStorage.setItem(ORDER_KEY, JSON.stringify(linksData.map(c => c.name)));
+  }catch(e){}
+}
+
+function moveCategory(fromName, toName){
+  if(fromName === toName) return;
+  const fromIndex = linksData.findIndex(c => c.name === fromName);
+  const toIndex = linksData.findIndex(c => c.name === toName);
+  if(fromIndex === -1 || toIndex === -1) return;
+  const [moved] = linksData.splice(fromIndex, 1);
+  linksData.splice(toIndex, 0, moved);
+  saveOrder();
 }
 
 function render(filter){
@@ -316,11 +443,42 @@ function render(filter){
 
     const section = document.createElement('section');
     section.className = 'category';
+    section.dataset.cat = cat.name;
 
     const head = document.createElement('p');
     head.className = 'cat-title';
-    head.textContent = cat.name;
+    head.innerHTML = reorderMode
+      ? `<span class="drag-handle"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.6"></circle><circle cx="16" cy="6" r="1.6"></circle><circle cx="8" cy="12" r="1.6"></circle><circle cx="16" cy="12" r="1.6"></circle><circle cx="8" cy="18" r="1.6"></circle><circle cx="16" cy="18" r="1.6"></circle></svg></span>${cat.name}`
+      : cat.name;
     section.appendChild(head);
+
+    if(reorderMode){
+      section.classList.add('draggable');
+      section.draggable = true;
+      section.addEventListener('dragstart', () => {
+        draggedName = cat.name;
+        section.classList.add('dragging');
+      });
+      section.addEventListener('dragend', () => {
+        section.classList.remove('dragging');
+      });
+      section.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        section.classList.add('drag-over');
+      });
+      section.addEventListener('dragleave', () => {
+        section.classList.remove('drag-over');
+      });
+      section.addEventListener('drop', (e) => {
+        e.preventDefault();
+        section.classList.remove('drag-over');
+        if(draggedName){
+          moveCategory(draggedName, cat.name);
+          draggedName = null;
+          render(currentQuery);
+        }
+      });
+    }
 
     const pills = document.createElement('div');
     pills.className = 'pills';
@@ -342,7 +500,12 @@ function render(filter){
   document.getElementById('emptyState').style.display = totalShown === 0 ? 'block' : 'none';
 }
 
-document.getElementById('searchInput').addEventListener('input', (e) => render(e.target.value));
+applySavedOrder();
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  currentQuery = e.target.value;
+  render(currentQuery);
+});
 render('');
 
 const themeToggle = document.getElementById('themeToggle');
@@ -350,6 +513,13 @@ themeToggle.addEventListener('click', () => {
   const root = document.documentElement;
   const isDark = root.getAttribute('data-theme') === 'dark';
   root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+});
+
+const reorderToggle = document.getElementById('reorderToggle');
+reorderToggle.addEventListener('click', () => {
+  reorderMode = !reorderMode;
+  reorderToggle.classList.toggle('active', reorderMode);
+  render(currentQuery);
 });
 </script>
 
