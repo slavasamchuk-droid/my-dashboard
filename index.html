@@ -36,10 +36,69 @@
     -webkit-font-smoothing:antialiased;
     transition:background .3s ease, color .3s ease;
   }
+  .sync-bar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:12px;
+    color:var(--text-tertiary);
+    margin-bottom:24px;
+  }
+  .sync-dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#34c759;
+    flex-shrink:0;
+  }
+  .sync-dot.syncing{
+    background:#d9b357;
+    animation:sync-pulse 1s ease-in-out infinite;
+  }
+  .sync-dot.error{
+    background:#ff3b30;
+  }
+  @keyframes sync-pulse{
+    0%,100%{opacity:1;}
+    50%{opacity:.35;}
+  }
+  .sync-refresh{
+    border:none;
+    background:transparent;
+    color:var(--text-tertiary);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    padding:3px;
+    border-radius:5px;
+    transition:color .15s, background .15s, transform .4s;
+  }
+  .sync-refresh:hover{
+    color:var(--text);
+    background:rgba(118,118,128,0.08);
+  }
+  .sync-refresh.spinning svg{
+    animation:sync-spin .7s linear infinite;
+  }
+  @keyframes sync-spin{
+    from{transform:rotate(0deg);}
+    to{transform:rotate(360deg);}
+  }
+
+  .top-bar{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:24px;
+  }
+  .top-bar-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-shrink:0;
+  }
   .reorder-toggle{
-    position:fixed;
-    top:20px;
-    right:58px;
     width:30px;
     height:30px;
     border-radius:50%;
@@ -62,9 +121,6 @@
   }
 
   .date-display{
-    position:fixed;
-    top:20px;
-    left:20px;
     font-size:13px;
     color:var(--text-secondary);
     line-height:1.3;
@@ -96,6 +152,24 @@
   .dd-ticker-wrap.show{
     opacity:1;
   }
+  .dd-action-plan-link{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    margin-top:6px;
+    font-size:10px;
+    color:var(--text-tertiary);
+    text-decoration:none;
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:2px 6px;
+    transition:color .15s, border-color .15s, background .15s;
+  }
+  .dd-action-plan-link:hover{
+    color:var(--text);
+    border-color:var(--border-strong, var(--text-tertiary));
+    background:rgba(118,118,128,0.08);
+  }
   .dd-ticker{
     display:inline-block;
     white-space:nowrap;
@@ -107,9 +181,6 @@
   }
 
   .theme-toggle{
-    position:fixed;
-    top:20px;
-    right:20px;
     width:30px;
     height:30px;
     border-radius:50%;
@@ -403,41 +474,56 @@
 </head>
 <body>
 
-<div class="date-display" id="dateDisplay">
-  <div class="dd-row">
-    <div id="ddDate"></div>
-    <div class="dd-sep" id="ddSep"></div>
-    <div class="dd-ticker-wrap" id="ddTickerWrap"><span class="dd-ticker" id="ddTicker"></span></div>
-  </div>
-</div>
-
-<button class="reorder-toggle" id="reorderToggle" title="Изменить порядок разделов" aria-label="Изменить порядок разделов">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"></polyline><polyline points="9 5 12 2 15 5"></polyline><polyline points="15 19 12 22 9 19"></polyline><polyline points="19 9 22 12 19 15"></polyline><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>
-</button>
-
-<button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
-  <span class="icon icon-moon">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path></svg>
-  </span>
-  <span class="icon icon-bulb">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="10" r="4.5"></circle>
-      <path d="M10 7.7 Q8.3 9 8.6 11.8"></path>
-      <path d="M9.3 15.5h5.4"></path>
-      <path d="M9.6 17h4.8"></path>
-      <path d="M10 18.5h4"></path>
-      <line x1="12" y1="3.5" x2="12" y2="1"></line>
-      <line x1="16.6" y1="5.4" x2="18.4" y2="3.6"></line>
-      <line x1="18.5" y1="10" x2="21" y2="10"></line>
-      <line x1="16.6" y1="14.6" x2="18.4" y2="16.4"></line>
-      <line x1="7.4" y1="14.6" x2="5.6" y2="16.4"></line>
-      <line x1="5.5" y1="10" x2="3" y2="10"></line>
-      <line x1="7.4" y1="5.4" x2="5.6" y2="3.6"></line>
-    </svg>
-  </span>
-</button>
-
 <div class="wrap">
+  <div class="top-bar">
+    <div class="date-display" id="dateDisplay">
+      <div class="dd-row">
+        <div id="ddDate"></div>
+        <div class="dd-sep" id="ddSep"></div>
+        <div class="dd-ticker-wrap" id="ddTickerWrap"><span class="dd-ticker" id="ddTicker"></span></div>
+      </div>
+      <a class="dd-action-plan-link" href="https://docs.google.com/spreadsheets/d/1kLE3EIPY51yNDf8u-cM5rCIinrrjpAJ1egthysZcQrs/edit?gid=147658334#gid=147658334" target="_blank" rel="noopener noreferrer">
+        Смотреть экшн план
+      </a>
+    </div>
+
+    <div class="top-bar-actions">
+      <button class="reorder-toggle" id="reorderToggle" title="Изменить порядок разделов" aria-label="Изменить порядок разделов">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"></polyline><polyline points="9 5 12 2 15 5"></polyline><polyline points="15 19 12 22 9 19"></polyline><polyline points="19 9 22 12 19 15"></polyline><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>
+      </button>
+
+      <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
+        <span class="icon icon-moon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path></svg>
+        </span>
+        <span class="icon icon-bulb">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="10" r="4.5"></circle>
+            <path d="M10 7.7 Q8.3 9 8.6 11.8"></path>
+            <path d="M9.3 15.5h5.4"></path>
+            <path d="M9.6 17h4.8"></path>
+            <path d="M10 18.5h4"></path>
+            <line x1="12" y1="3.5" x2="12" y2="1"></line>
+            <line x1="16.6" y1="5.4" x2="18.4" y2="3.6"></line>
+            <line x1="18.5" y1="10" x2="21" y2="10"></line>
+            <line x1="16.6" y1="14.6" x2="18.4" y2="16.4"></line>
+            <line x1="7.4" y1="14.6" x2="5.6" y2="16.4"></line>
+            <line x1="5.5" y1="10" x2="3" y2="10"></line>
+            <line x1="7.4" y1="5.4" x2="5.6" y2="3.6"></line>
+          </svg>
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <div class="sync-bar">
+    <span class="sync-dot" id="syncDot"></span>
+    <span id="syncText">Загрузка…</span>
+    <button class="sync-refresh" id="syncRefresh" title="Обновить сейчас" aria-label="Обновить сейчас">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0020.49 15"></path></svg>
+    </button>
+  </div>
+
   <header>
     <div class="search-row">
       <a class="quick-create sheet-btn" href="https://sheets.new" target="_blank" rel="noopener noreferrer" title="Создать Google Таблицу" aria-label="Создать Google Таблицу">
@@ -525,6 +611,76 @@ let reorderMode = false;
 let currentQuery = '';
 let draggedName = null;
 
+const FIREBASE_URL = 'https://slava-22b68-default-rtdb.firebaseio.com';
+let syncCount = 0;
+
+async function fbGet(path){
+  const r = await fetch(`${FIREBASE_URL}/${path}.json`);
+  if(!r.ok) throw new Error('Firebase GET ' + r.status);
+  return r.json();
+}
+async function fbPut(path, value){
+  const r = await fetch(`${FIREBASE_URL}/${path}.json`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(value)
+  });
+  if(!r.ok) throw new Error('Firebase PUT ' + r.status);
+  return r.json();
+}
+
+function updateSyncBar(state){
+  const dot = document.getElementById('syncDot');
+  const text = document.getElementById('syncText');
+  if(!dot || !text) return;
+  if(state === 'syncing'){
+    dot.className = 'sync-dot syncing';
+    text.textContent = 'Синхронизация…';
+    return;
+  }
+  if(state === 'error'){
+    dot.className = 'sync-dot error';
+    text.textContent = 'Не удалось синхронизировать';
+    return;
+  }
+  dot.className = 'sync-dot';
+  const totalLinks = linksData.reduce((sum, c) => sum + c.links.length, 0);
+  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  text.textContent = `${totalLinks} ссылки · разделов: ${linksData.length} · синк #${syncCount} · синхронизировано в ${time}`;
+}
+
+async function syncDashboard(){
+  updateSyncBar('syncing');
+  try{
+    let count = 0;
+    try{ count = (await fbGet('dashboard/syncCount')) || 0; }catch(e){}
+    count += 1;
+    syncCount = count;
+    await fbPut('dashboard/syncCount', count);
+    await fbPut('dashboard/order', linksData.map(c => c.name));
+    await fbPut('dashboard/lastSync', new Date().toISOString());
+    console.log('[firebase] синхронизация #' + count + ' выполнена');
+    updateSyncBar('done');
+  }catch(e){
+    console.error('[firebase] ошибка синхронизации:', e);
+    updateSyncBar('error');
+  }
+}
+
+async function loadOrderFromFirebase(){
+  try{
+    const saved = await fbGet('dashboard/order');
+    if(Array.isArray(saved) && saved.length){
+      linksData.sort((a, b) => saved.indexOf(a.name) - saved.indexOf(b.name));
+      render(currentQuery);
+    }
+    try{ syncCount = (await fbGet('dashboard/syncCount')) || 0; }catch(e){}
+  }catch(e){
+    console.warn('[firebase] не удалось получить порядок из облака, использую локальный:', e);
+  }
+  updateSyncBar('done');
+}
+
 function applySavedOrder(){
   try{
     const saved = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
@@ -538,6 +694,7 @@ function saveOrder(){
   try{
     localStorage.setItem(ORDER_KEY, JSON.stringify(linksData.map(c => c.name)));
   }catch(e){}
+  syncDashboard();
 }
 
 function moveCategory(fromName, toName){
@@ -832,7 +989,7 @@ function loadRoadmap(){
 }
 
 const LINKS_SHEET_ID = '1xM2j5tKaIIN-nFhj9z9uNU1-1u3pQFflHJBslLlHI00';
-const LINKS_GID = '0';
+const LINKS_GID = '961366332';
 
 function processLinksCSV(text){
   try{
@@ -862,6 +1019,7 @@ function processLinksCSV(text){
     console.log('[links] загружено категорий:', linksData.length, linksData);
     applySavedOrder();
     render(currentQuery);
+    loadOrderFromFirebase();
   }catch(e){
     console.error('[links] ошибка разбора:', e);
   }
@@ -898,6 +1056,13 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
   render(currentQuery);
 });
 render('');
+
+const syncRefreshBtn = document.getElementById('syncRefresh');
+syncRefreshBtn.addEventListener('click', () => {
+  syncRefreshBtn.classList.add('spinning');
+  loadLinksData();
+  setTimeout(() => syncRefreshBtn.classList.remove('spinning'), 800);
+});
 
 const themeToggle = document.getElementById('themeToggle');
 themeToggle.addEventListener('click', () => {
