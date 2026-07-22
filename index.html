@@ -143,7 +143,7 @@
   }
   .dd-ticker-wrap{
     overflow:hidden;
-    width:320px;
+    width:480px;
     position:relative;
     height:16px;
     opacity:0;
@@ -219,7 +219,7 @@
     transform:rotate(0deg) scale(1);
   }
   .wrap{
-    max-width:760px;
+    max-width:1040px;
     margin:0 auto;
     padding:64px 24px 100px;
   }
@@ -818,6 +818,42 @@ function pluralDays(n){
   return 'дней';
 }
 
+function pluralMonths(n){
+  const mod10 = n % 10, mod100 = n % 100;
+  if(mod100 >= 11 && mod100 <= 14) return 'месяцев';
+  if(mod10 === 1) return 'месяц';
+  if(mod10 >= 2 && mod10 <= 4) return 'месяца';
+  return 'месяцев';
+}
+
+function formatRemaining(today, eventDate){
+  const totalDays = Math.round((eventDate - today) / 86400000);
+  if(totalDays < 15){
+    return `${totalDays} ${pluralDays(totalDays)}`;
+  }
+  let months = (eventDate.getFullYear() - today.getFullYear()) * 12 + (eventDate.getMonth() - today.getMonth());
+  let days = eventDate.getDate() - today.getDate();
+  if(days < 0){
+    months--;
+    const prevMonthLastDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), 0).getDate();
+    days += prevMonthLastDay;
+  }
+  if(months <= 0){
+    return `${totalDays} ${pluralDays(totalDays)}`;
+  }
+  if(days === 0){
+    return `${months} ${pluralMonths(months)}`;
+  }
+  return `${months} ${pluralMonths(months)} и ${days} ${pluralDays(days)}`;
+}
+
+function formatEventDate(d){
+  const day = d.getDate();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}.${month}.${year}`;
+}
+
 function findMonthIndex(cellText){
   if(!cellText) return null;
   const t = cellText.toString().trim().toLowerCase();
@@ -914,8 +950,7 @@ function processRoadmapCSV(text){
 
     if(upcoming.length){
       tickerMessages = upcoming.map(m => {
-        const days = Math.round((m.date - today) / 86400000);
-        return `До мероприятия «${m.name}» осталось ${days} ${pluralDays(days)}`;
+        return `До мероприятия «${m.name}» осталось ${formatRemaining(today, m.date)} · ${formatEventDate(m.date)}`;
       });
       console.log('[roadmap] сообщения тикера:', tickerMessages);
       document.getElementById('ddSep').style.display = 'block';
