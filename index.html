@@ -1032,7 +1032,7 @@ function processRoadmapCSV(text){
     for(let r = dataStart; r < rows.length; r++){
       const row = rows[r];
       if(!row) continue;
-      const name = (row[0] && row[0].trim()) || (row[1] && row[1].trim());
+      const name = row[1] && row[1].trim();
       if(!name) continue;
       for(let c = 2; c < row.length; c++){
         if(row[c] && row[c].includes(ROADMAP_MARKER) && colDate[c]){
