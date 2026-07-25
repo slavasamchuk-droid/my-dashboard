@@ -92,6 +92,48 @@
     gap:16px;
     margin-bottom:24px;
   }
+  .settings-wrap{
+    position:relative;
+  }
+  .settings-menu{
+    position:absolute;
+    top:calc(100% + 8px);
+    right:0;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+    padding:6px;
+    min-width:240px;
+    max-height:70vh;
+    overflow-y:auto;
+    opacity:0;
+    transform:translateY(-4px);
+    pointer-events:none;
+    transition:opacity .15s ease, transform .15s ease;
+    z-index:100;
+  }
+  .settings-menu.open{
+    opacity:1;
+    transform:translateY(0);
+    pointer-events:auto;
+  }
+  .settings-menu a{
+    display:block;
+    padding:8px 12px;
+    color:var(--text);
+    text-decoration:none;
+    border-radius:8px;
+    font-size:13px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    transition:background .12s;
+  }
+  .settings-menu a:hover{
+    background:rgba(118,118,128,0.08);
+  }
+
   .top-bar-actions{
     display:flex;
     align-items:center;
@@ -152,6 +194,67 @@
   .dd-ticker-wrap.show{
     opacity:1;
   }
+  .dd-actions{
+    display:flex;
+    gap:6px;
+    margin-top:6px;
+    flex-wrap:wrap;
+  }
+  button.dd-action-plan-link{
+    font-family:inherit;
+    cursor:pointer;
+  }
+  .events-panel{
+    display:none;
+    margin-top:8px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    max-height:280px;
+    overflow-y:auto;
+    font-size:12px;
+    color:var(--text-secondary);
+    box-shadow:var(--shadow);
+    max-width:340px;
+  }
+  .events-panel.open{
+    display:block;
+  }
+  .events-panel .event-row{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    padding:5px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .events-panel .event-row:last-child{
+    border-bottom:none;
+  }
+  .events-panel .event-row.past{
+    opacity:0.45;
+  }
+  .events-panel .event-name{
+    color:var(--text);
+    flex:1;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .events-panel .event-row.past .event-name{
+    color:var(--text-secondary);
+  }
+  .events-panel .event-date{
+    color:var(--text-tertiary);
+    flex-shrink:0;
+    font-variant-numeric:tabular-nums;
+  }
+  .events-panel .empty-hint{
+    color:var(--text-tertiary);
+    font-style:italic;
+    padding:4px 0;
+  }
+
   .dd-action-plan-link{
     display:inline-flex;
     align-items:center;
@@ -396,19 +499,6 @@
     background:var(--panel);
     box-shadow:0 0 8px rgba(255,45,149,0.55), 0 0 22px rgba(255,45,149,0.35);
   }
-  .favicon{
-    width:20px;
-    height:20px;
-    border-radius:6px;
-    background:var(--accent-soft);
-    color:var(--accent);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:11px;
-    font-weight:600;
-    flex-shrink:0;
-  }
 
   .empty{
     color:var(--text-tertiary);
@@ -482,12 +572,25 @@
         <div class="dd-sep" id="ddSep"></div>
         <div class="dd-ticker-wrap" id="ddTickerWrap"><span class="dd-ticker" id="ddTicker"></span></div>
       </div>
-      <a class="dd-action-plan-link" href="https://docs.google.com/spreadsheets/d/1kLE3EIPY51yNDf8u-cM5rCIinrrjpAJ1egthysZcQrs/edit?gid=147658334#gid=147658334" target="_blank" rel="noopener noreferrer">
-        Смотреть экшн план
-      </a>
+      <div class="dd-actions">
+        <a class="dd-action-plan-link" href="https://docs.google.com/spreadsheets/d/1kLE3EIPY51yNDf8u-cM5rCIinrrjpAJ1egthysZcQrs/edit?gid=147658334#gid=147658334" target="_blank" rel="noopener noreferrer">
+          Смотреть экшн план
+        </a>
+        <button class="dd-action-plan-link" id="eventsListBtn" type="button">
+          Смотреть списком
+        </button>
+      </div>
+      <div class="events-panel" id="eventsPanel"></div>
     </div>
 
     <div class="top-bar-actions">
+      <div class="settings-wrap">
+        <button class="reorder-toggle" id="settingsToggle" title="Все ссылки" aria-label="Все ссылки">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
+        </button>
+        <div class="settings-menu" id="settingsMenu"></div>
+      </div>
+
       <button class="reorder-toggle" id="reorderToggle" title="Изменить порядок разделов" aria-label="Изменить порядок разделов">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"></polyline><polyline points="9 5 12 2 15 5"></polyline><polyline points="15 19 12 22 9 19"></polyline><polyline points="19 9 22 12 19 15"></polyline><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>
       </button>
@@ -601,10 +704,6 @@
   категория группируется автоматически по первому столбцу.
 */
 let linksData = [];
-
-function initialOf(title){
-  return title.trim().charAt(0).toUpperCase();
-}
 
 const ORDER_KEY = 'dashboardCategoryOrder';
 let reorderMode = false;
@@ -747,8 +846,10 @@ function render(filter){
         e.preventDefault();
         section.classList.add('drag-over');
       });
-      section.addEventListener('dragleave', () => {
-        section.classList.remove('drag-over');
+      section.addEventListener('dragleave', (e) => {
+        if(!section.contains(e.relatedTarget)){
+          section.classList.remove('drag-over');
+        }
       });
       section.addEventListener('drop', (e) => {
         e.preventDefault();
@@ -934,13 +1035,16 @@ function processRoadmapCSV(text){
       const name = (row[0] && row[0].trim()) || (row[1] && row[1].trim());
       if(!name) continue;
       for(let c = 2; c < row.length; c++){
-        if(row[c] && row[c].trim() === ROADMAP_MARKER && colDate[c]){
+        if(row[c] && row[c].includes(ROADMAP_MARKER) && colDate[c]){
           matches.push({ name, date: colDate[c] });
         }
       }
     }
 
     console.log('[roadmap] начало данных со строки:', dataStart, '/ найдено маркеров "!":', matches.length, matches);
+
+    allEvents = matches.sort((a, b) => a.date - b.date);
+    populateEventsPanel();
 
     const upcoming = matches
       .filter(m => m.date >= today)
@@ -964,6 +1068,32 @@ function processRoadmapCSV(text){
 }
 
 let tickerMessages = [];
+let allEvents = [];
+
+function populateEventsPanel(){
+  const panel = document.getElementById('eventsPanel');
+  if(!panel) return;
+  panel.innerHTML = '';
+  if(!allEvents.length){
+    panel.innerHTML = '<div class="empty-hint">Нет отмеченных мероприятий</div>';
+    return;
+  }
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  allEvents.forEach(ev => {
+    const row = document.createElement('div');
+    row.className = 'event-row' + (ev.date < today ? ' past' : '');
+    const name = document.createElement('span');
+    name.className = 'event-name';
+    name.textContent = ev.name;
+    const date = document.createElement('span');
+    date.className = 'event-date';
+    date.textContent = formatEventDate(ev.date);
+    row.appendChild(name);
+    row.appendChild(date);
+    panel.appendChild(row);
+  });
+}
 let tickerIndex = 0;
 
 function showNextTicker(){
@@ -1015,12 +1145,31 @@ function loadRoadmap(){
     processRoadmapCSV(csvLike);
   };
 
+  const oldScript = document.getElementById('roadmap-loader-script');
+  if(oldScript) oldScript.remove();
+
   const script = document.createElement('script');
+  script.id = 'roadmap-loader-script';
   script.src = `https://docs.google.com/spreadsheets/d/${ROADMAP_SHEET_ID}/gviz/tq?gid=${ROADMAP_GID}&headers=0&tqx=out:json`;
   console.log('[roadmap] загружаю (JSONP):', script.src);
-  script.onload = () => console.log('[roadmap] скрипт загружен успешно');
-  script.onerror = (e) => console.error('[roadmap] скрипт НЕ загрузился:', e);
+  let loaded = false;
+  script.onload = () => { loaded = true; console.log('[roadmap] скрипт загружен успешно'); };
+  script.onerror = (e) => {
+    console.error('[roadmap] скрипт НЕ загрузился, пробую через CSV+прокси:', e);
+    fetchRoadmapViaProxy();
+  };
   document.body.appendChild(script);
+  setTimeout(() => { if(!loaded){ console.warn('[roadmap] таймаут JSONP, пробую CSV+прокси'); fetchRoadmapViaProxy(); } }, 4000);
+}
+
+function fetchRoadmapViaProxy(){
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${ROADMAP_SHEET_ID}/export?format=csv&gid=${ROADMAP_GID}`;
+  const proxied = `https://corsproxy.io/?${encodeURIComponent(csvUrl)}`;
+  console.log('[roadmap] fallback fetch:', proxied);
+  fetch(proxied)
+    .then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))
+    .then(text => { console.log('[roadmap] fallback ok, символов:', text.length); processRoadmapCSV(text); })
+    .catch(e => console.error('[roadmap] fallback тоже упал:', e));
 }
 
 const LINKS_SHEET_ID = '1xM2j5tKaIIN-nFhj9z9uNU1-1u3pQFflHJBslLlHI00';
@@ -1077,12 +1226,35 @@ function loadLinksData(){
     loadRoadmap();
   };
 
+  const oldScript = document.getElementById('links-loader-script');
+  if(oldScript) oldScript.remove();
+
   const script = document.createElement('script');
+  script.id = 'links-loader-script';
   script.src = `https://docs.google.com/spreadsheets/d/${LINKS_SHEET_ID}/gviz/tq?gid=${LINKS_GID}&headers=0&tqx=out:json`;
   console.log('[links] загружаю (JSONP):', script.src);
-  script.onload = () => console.log('[links] скрипт загружен успешно');
-  script.onerror = (e) => { console.error('[links] скрипт НЕ загрузился:', e); loadRoadmap(); };
+  let loaded = false;
+  script.onload = () => { loaded = true; console.log('[links] скрипт загружен успешно'); };
+  script.onerror = (e) => {
+    console.error('[links] скрипт НЕ загрузился, пробую через CSV+прокси:', e);
+    fetchLinksViaProxy();
+  };
   document.body.appendChild(script);
+  setTimeout(() => { if(!loaded){ console.warn('[links] таймаут JSONP, пробую CSV+прокси'); fetchLinksViaProxy(); } }, 4000);
+}
+
+function fetchLinksViaProxy(){
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${LINKS_SHEET_ID}/export?format=csv&gid=${LINKS_GID}`;
+  const proxied = `https://corsproxy.io/?${encodeURIComponent(csvUrl)}`;
+  console.log('[links] fallback fetch:', proxied);
+  fetch(proxied)
+    .then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))
+    .then(text => {
+      console.log('[links] fallback ok, символов:', text.length);
+      processLinksCSV(text);
+      loadRoadmap();
+    })
+    .catch(e => { console.error('[links] fallback тоже упал:', e); loadRoadmap(); });
 }
 loadLinksData();
 
@@ -1111,6 +1283,44 @@ reorderToggle.addEventListener('click', () => {
   reorderMode = !reorderMode;
   reorderToggle.classList.toggle('active', reorderMode);
   render(currentQuery);
+});
+
+const eventsListBtn = document.getElementById('eventsListBtn');
+eventsListBtn.addEventListener('click', () => {
+  const panel = document.getElementById('eventsPanel');
+  panel.classList.toggle('open');
+});
+
+function populateSettingsMenu(){
+  const menu = document.getElementById('settingsMenu');
+  if(!menu) return;
+  menu.innerHTML = '';
+  const items = [
+    { title: 'GitHub', url: 'https://github.com/slavasamchuk-droid/my-dashboard' },
+    { title: 'Firebase', url: 'https://console.firebase.google.com/u/0/project/slava-22b68/database/slava-22b68-default-rtdb/data/~2F' },
+    { title: 'Netlify', url: 'https://app.netlify.com/projects/slavaslava/overview' }
+  ];
+  items.forEach(l => {
+    const a = document.createElement('a');
+    a.href = l.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = l.title;
+    menu.appendChild(a);
+  });
+}
+
+const settingsToggle = document.getElementById('settingsToggle');
+const settingsMenu = document.getElementById('settingsMenu');
+populateSettingsMenu();
+settingsToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  settingsMenu.classList.toggle('open');
+});
+document.addEventListener('click', (e) => {
+  if(!settingsMenu.contains(e.target) && e.target !== settingsToggle){
+    settingsMenu.classList.remove('open');
+  }
 });
 </script>
 
