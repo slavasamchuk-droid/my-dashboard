@@ -1127,40 +1127,47 @@ function showNextTicker(){
   const wrap = document.getElementById('ddTickerWrap');
   const el = document.getElementById('ddTicker');
 
-  el.style.transition = 'none';
-  el.style.transform = 'translateX(0)';
-  const msg = tickerMessages[tickerIndex];
-  if(typeof msg === 'string'){
-    el.textContent = msg;
-    el.classList.remove('urgent');
-  } else {
-    el.textContent = msg.text;
-    el.classList.toggle('urgent', !!msg.urgent);
-  }
+  // Сброс: убираем видимость, ждём затухание, потом ставим текст
+  wrap.classList.remove('show');
 
-  requestAnimationFrame(() => {
+  setTimeout(() => {
+    el.style.transition = 'none';
+    el.style.transform = 'translateX(0)';
+    const msg = tickerMessages[tickerIndex];
+    if(typeof msg === 'string'){
+      el.textContent = msg;
+      el.classList.remove('urgent');
+    } else {
+      el.textContent = msg.text;
+      el.classList.toggle('urgent', !!msg.urgent);
+    }
+
+    // Форсируем reflow, чтобы браузер применил textContent и transition:none
+    void el.offsetWidth;
+
     wrap.classList.add('show');
-    const overflow = el.scrollWidth - wrap.clientWidth;
 
-    const finish = () => {
-      wrap.classList.remove('show');
-      setTimeout(() => {
+    // Даём время появиться, потом решаем — прокручивать или нет
+    setTimeout(() => {
+      const overflow = el.scrollWidth - wrap.clientWidth;
+
+      const next = () => {
         tickerIndex = (tickerIndex + 1) % tickerMessages.length;
         showNextTicker();
-      }, 600);
-    };
+      };
 
-    if(overflow > 0){
-      const scrollDuration = Math.max(2, overflow / 40);
-      setTimeout(() => {
+      if(overflow > 0){
+        const scrollDuration = Math.max(2, overflow / 40);
         el.style.transition = `transform ${scrollDuration}s linear`;
         el.style.transform = `translateX(-${overflow}px)`;
-      }, 700);
-      setTimeout(finish, 5000 + scrollDuration * 1000);
-    } else {
-      setTimeout(finish, 5000);
-    }
-  });
+        // Ждём: прокрутка + 5 сек паузы на конце
+        setTimeout(next, scrollDuration * 1000 + 5000);
+      } else {
+        // Ровно 5 секунд стоим
+        setTimeout(next, 5000);
+      }
+    }, 600);
+  }, 600);
 }
 
 function loadRoadmap(){
