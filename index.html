@@ -281,6 +281,11 @@
     position:absolute;
     left:0;
     top:0;
+    transition:color .3s ease;
+  }
+  .dd-ticker.urgent{
+    color:#ff3b30;
+    font-weight:600;
   }
 
   .theme-toggle{
@@ -573,7 +578,7 @@
         <div class="dd-ticker-wrap" id="ddTickerWrap"><span class="dd-ticker" id="ddTicker"></span></div>
       </div>
       <div class="dd-actions">
-        <a class="dd-action-plan-link" href="https://docs.google.com/spreadsheets/d/1kLE3EIPY51yNDf8u-cM5rCIinrrjpAJ1egthysZcQrs/edit?gid=147658334#gid=147658334" target="_blank" rel="noopener noreferrer">
+        <a class="dd-action-plan-link" href="https://docs.google.com/spreadsheets/d/1a_yEwDhiAfUonqoPorNj47n6ViBizJmn8v4jQjxVSgM/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer">
           Смотреть экшн план
         </a>
         <button class="dd-action-plan-link" id="eventsListBtn" type="button">
@@ -903,8 +908,8 @@ setInterval(renderDate, 30000);
   дат, вычисляет дату по шапке (месяц + число) и берёт название
   события из колонки A или B той же строки.
 */
-const ROADMAP_SHEET_ID = '1kLE3EIPY51yNDf8u-cM5rCIinrrjpAJ1egthysZcQrs';
-const ROADMAP_GID = '147658334';
+const ROADMAP_SHEET_ID = '1a_yEwDhiAfUonqoPorNj47n6ViBizJmn8v4jQjxVSgM';
+const ROADMAP_GID = '0';
 const ROADMAP_MARKER = '!';
 const RU_MONTHS = {
   'январь':0,'февраль':1,'март':2,'апрель':3,'май':4,'июнь':5,
@@ -1054,7 +1059,11 @@ function processRoadmapCSV(text){
 
     if(upcoming.length){
       tickerMessages = upcoming.map(m => {
-        return `До мероприятия «${m.name}» осталось ${formatRemaining(today, m.date)} · ${formatEventDate(m.date)}`;
+        const days = Math.round((m.date - today) / 86400000);
+        return {
+          text: `До мероприятия «${m.name}» осталось ${formatRemaining(today, m.date)} · ${formatEventDate(m.date)}`,
+          urgent: days < 14
+        };
       });
       console.log('[roadmap] сообщения тикера:', tickerMessages);
       document.getElementById('ddSep').style.display = 'block';
@@ -1069,6 +1078,23 @@ function processRoadmapCSV(text){
 
 let tickerMessages = [];
 let allEvents = [];
+
+// Fallback: если браузер не сможет прочитать таблицу (блокировщики, сеть),
+// используем эти данные. Обновятся сами, как только загрузка сработает.
+const FALLBACK_EVENTS = [
+  { name: 'ДЕНЬ СТРОИТЕЛЯ', date: new Date(2026, 6, 31) },
+  { name: 'раннее бронирование Эстэт 43', date: new Date(2026, 7, 2) },
+  { name: 'старт продаж Эстэт 43', date: new Date(2026, 7, 9) },
+  { name: 'Подготовка к проекту 32', date: new Date(2026, 8, 3) },
+  { name: 'Подготовка к проекту', date: new Date(2026, 8, 16) },
+  { name: 'Старт продаж наземный паркинг полет', date: new Date(2026, 8, 23) },
+  { name: 'Скоро 32', date: new Date(2026, 8, 23) },
+  { name: 'Раннее бронирование 32', date: new Date(2026, 9, 7) },
+  { name: 'Старт продаж 32', date: new Date(2026, 9, 21) },
+  { name: 'Подготовка к проекту Движение61 77', date: new Date(2026, 10, 4) },
+  { name: 'Раннее бронирование Движение61 77', date: new Date(2026, 10, 12) },
+  { name: 'Старт продаж Движение61 77', date: new Date(2026, 10, 22) }
+];
 
 function populateEventsPanel(){
   const panel = document.getElementById('eventsPanel');
@@ -1103,7 +1129,14 @@ function showNextTicker(){
 
   el.style.transition = 'none';
   el.style.transform = 'translateX(0)';
-  el.textContent = tickerMessages[tickerIndex];
+  const msg = tickerMessages[tickerIndex];
+  if(typeof msg === 'string'){
+    el.textContent = msg;
+    el.classList.remove('urgent');
+  } else {
+    el.textContent = msg.text;
+    el.classList.toggle('urgent', !!msg.urgent);
+  }
 
   requestAnimationFrame(() => {
     wrap.classList.add('show');
@@ -1257,6 +1290,25 @@ function fetchLinksViaProxy(){
     .catch(e => { console.error('[links] fallback тоже упал:', e); loadRoadmap(); });
 }
 loadLinksData();
+
+// Применяем fallback для мероприятий сразу — если таблица потом загрузится,
+// данные перезапишутся, а если нет — хотя бы этот список будет виден.
+allEvents = FALLBACK_EVENTS.slice().sort((a, b) => a.date - b.date);
+const _today = new Date();
+_today.setHours(0,0,0,0);
+const _upcoming = allEvents.filter(m => m.date >= _today);
+if(_upcoming.length){
+  tickerMessages = _upcoming.map(m => {
+    const days = Math.round((m.date - _today) / 86400000);
+    return {
+      text: `До мероприятия «${m.name}» осталось ${formatRemaining(_today, m.date)} · ${formatEventDate(m.date)}`,
+      urgent: days < 14
+    };
+  });
+  document.getElementById('ddSep').style.display = 'block';
+  showNextTicker();
+}
+populateEventsPanel();
 
 document.getElementById('searchInput').addEventListener('input', (e) => {
   currentQuery = e.target.value;
