@@ -208,7 +208,7 @@
        целиком и просто стоит 6 секунд без прокрутки. */
     flex:1 1 auto;
     min-width:0;
-    max-width:900px;
+    max-width:none;
     position:relative;
     height:16px;
     opacity:0;
@@ -988,6 +988,13 @@ const RU_MONTHS = {
   'январь':0,'февраль':1,'март':2,'апрель':3,'май':4,'июнь':5,
   'июль':6,'август':7,'сентябрь':8,'октябрь':9,'ноябрь':10,'декабрь':11
 };
+/* Короткие корни — ловят и «Ноябрь», и «ноя», и «нояб.», и «ноября».
+   Порядок важен: «мар» должен проверяться раньше «май» не мешает,
+   но «июн»/«июл» обязаны идти до «ию». */
+const RU_MONTH_STEMS = [
+  ['янв',0],['фев',1],['февр',1],['мар',2],['апр',3],['мая',4],['май',4],
+  ['июн',5],['июл',6],['авг',7],['сен',8],['окт',9],['ноя',10],['дек',11]
+];
 
 function pluralDays(n){
   const mod10 = n % 10, mod100 = n % 100;
@@ -1034,10 +1041,14 @@ function formatEventDate(d){
 }
 
 function findMonthIndex(cellText){
-  if(!cellText) return null;
-  const t = cellText.toString().trim().toLowerCase();
+  if(cellText == null) return null;
+  const t = cellText.toString().trim().toLowerCase().replace(/ё/g, 'е');
+  if(!t) return null;
   for(const name in RU_MONTHS){
     if(t.startsWith(name)) return RU_MONTHS[name];
+  }
+  for(let i = 0; i < RU_MONTH_STEMS.length; i++){
+    if(t.startsWith(RU_MONTH_STEMS[i][0])) return RU_MONTH_STEMS[i][1];
   }
   return null;
 }
@@ -1070,37 +1081,85 @@ function processRoadmapCSV(text){
     console.log('[roadmap] всего строк:', rows.length);
     if(!rows.length) return;
 
-    let monthRow = -1;
-    for(let i = 0; i < rows.length; i++){
-      if(rows[i].some(cell => findMonthIndex(cell) !== null)){ monthRow = i; break; }
+    /* Ширина сетки считается по ВСЕМ строкам.
+       Раньше цикл шёл до rows[monthRow].length — а gviz обрезает
+       у каждой строки пустой «хвост», поэтому строка месяцев почти
+       всегда короче строки чисел. Все колонки правее обрезки дат не
+       получали, и события из этих месяцев терялись. */
+    const width = rows.reduce((w, r) => Math.max(w, r ? r.length : 0), 0);
+    console.log('[roadmap] ширина сетки:', width);
+
+    // Строка месяцев — та, где названий месяцев БОЛЬШЕ ВСЕГО,
+    // а не просто первая попавшаяся с одним словом «Июль» в заголовке.
+    let monthRow = -1, bestMonths = 0;
+    for(let i = 0; i < Math.min(rows.length, 40); i++){
+      let n = 0;
+      for(let c = 0; c < rows[i].length; c++) if(findMonthIndex(rows[i][c]) !== null) n++;
+      if(n > bestMonths){ bestMonths = n; monthRow = i; }
     }
-    if(monthRow === -1){ console.error('[roadmap] не нашёл строку с названием месяца'); return; }
-    const dayRow = monthRow + 1;
-    if(!rows[dayRow]){ console.error('[roadmap] нет строки с числами дней после строки месяцев'); return; }
-    console.log('[roadmap] строка месяцев:', monthRow, 'строка дней:', dayRow);
+    if(monthRow === -1){ console.error('[roadmap] не нашёл строку с названиями месяцев'); return; }
+
+    const isDayNum = (v) => {
+      const n = parseInt(v, 10);
+      return !isNaN(n) && n >= 1 && n <= 31 && String(v).trim().length <= 2;
+    };
+    // Строка чисел — не обязательно ровно следующая: ищем в ближайших
+    // четырёх строках ту, где больше всего чисел 1–31.
+    let dayRow = -1, bestDays = 0;
+    for(let i = monthRow; i <= Math.min(monthRow + 4, rows.length - 1); i++){
+      let n = 0;
+      for(let c = 0; c < rows[i].length; c++) if(isDayNum(rows[i][c])) n++;
+      if(n > bestDays){ bestDays = n; dayRow = i; }
+    }
+    if(dayRow === -1 || !bestDays){ console.error('[roadmap] не нашёл строку с числами дней'); return; }
+    console.log('[roadmap] строка месяцев:', monthRow, '(названий:', bestMonths + ')',
+                '/ строка чисел:', dayRow, '(чисел:', bestDays + ')');
 
     const today = new Date();
     today.setHours(0,0,0,0);
-    const baseYear = today.getFullYear();
 
-    const colDate = {};
-    let curMonth = null, year = baseYear, prevMonth = null, prevDay = null;
-    for(let c = 0; c < rows[monthRow].length; c++){
-      const labelMonth = findMonthIndex(rows[monthRow][c]);
-      const dayVal = parseInt(rows[dayRow][c], 10);
-      if(isNaN(dayVal)){ prevDay = null; continue; }
+    // 1) Месяц для каждой колонки: протяжка вправо от подписи
+    //    (объединённые ячейки приходят пустыми — держим последний месяц)
+    const monthOf = new Array(width).fill(null);
+    let cur = null;
+    for(let c = 0; c < width; c++){
+      const m = findMonthIndex((rows[monthRow] || [])[c]);
+      if(m !== null) cur = m;
+      monthOf[c] = cur;
+    }
 
-      if(labelMonth !== null){
-        curMonth = labelMonth;
-      } else if(curMonth !== null && prevDay !== null && dayVal < prevDay){
-        curMonth = (curMonth + 1) % 12;
+    // 2) Дни
+    const dayOf = new Array(width).fill(null);
+    for(let c = 0; c < width; c++){
+      const v = (rows[dayRow] || [])[c];
+      if(isDayNum(v)) dayOf[c] = parseInt(v, 10);
+    }
+
+    /* 3) Колонки ЛЕВЕЕ первой подписи месяца.
+       Раньше они просто выбрасывались (curMonth === null → continue),
+       из-за чего терялось всё начало календаря. Теперь идём справа
+       налево от первого известного месяца: если число растёт при
+       движении влево — значит перешли в предыдущий месяц. */
+    let firstKnown = monthOf.findIndex(m => m !== null);
+    if(firstKnown > 0){
+      let m = monthOf[firstKnown];
+      let nextDay = dayOf[firstKnown];
+      for(let c = firstKnown - 1; c >= 0; c--){
+        if(dayOf[c] === null) continue;
+        if(nextDay !== null && dayOf[c] > nextDay) m = (m + 11) % 12;
+        monthOf[c] = m;
+        nextDay = dayOf[c];
       }
-      if(curMonth === null){ prevDay = dayVal; continue; }
+    }
 
-      if(prevMonth !== null && curMonth < prevMonth) year++;
-      prevMonth = curMonth;
-      prevDay = dayVal;
-      colDate[c] = new Date(year, curMonth, dayVal);
+    // 4) Год: считаем от первой колонки, увеличиваем на переходе через декабрь
+    const colDate = {};
+    let year = today.getFullYear(), prevMonth = null;
+    for(let c = 0; c < width; c++){
+      if(dayOf[c] === null || monthOf[c] === null) continue;
+      if(prevMonth !== null && monthOf[c] < prevMonth) year++;
+      prevMonth = monthOf[c];
+      colDate[c] = new Date(year, monthOf[c], dayOf[c]);
     }
 
     /* Раньше название бралось жёстко из row[1] (колонка B), и любая строка,
@@ -1121,24 +1180,32 @@ function processRoadmapCSV(text){
 
     const dataStart = dayRow + 1;
     const matches = [];
-    const skipped = [];
+    const seen = new Set();
+    let lastName = '';   // протяжка вниз для вертикально объединённых названий
     for(let r = dataStart; r < rows.length; r++){
       const row = rows[r];
       if(!row) continue;
-      const marks = [];
+      const ownName = rowName(row);
+      if(ownName) lastName = ownName;
+
       for(let c = firstDateCol; c < row.length; c++){
-        if(row[c] && row[c].includes(ROADMAP_MARKER) && colDate[c]) marks.push(colDate[c]);
+        const cell = row[c];
+        if(!cell || !colDate[c]) continue;
+        // «!» может прийти как обычный, так и полноширинный «！»
+        if(cell.indexOf(ROADMAP_MARKER) === -1 && cell.indexOf('！') === -1) continue;
+        const name = ownName || lastName;
+        if(!name){ console.warn('[roadmap] маркер без названия, строка', r, 'колонка', c); continue; }
+        const key = name + '@' + colDate[c].getTime();
+        if(seen.has(key)) continue;
+        seen.add(key);
+        matches.push({ name, date: colDate[c] });
       }
-      if(!marks.length) continue;
-      const name = rowName(row);
-      if(!name){ skipped.push(r); continue; }
-      marks.forEach(d => matches.push({ name, date: d }));
     }
-    if(skipped.length) console.warn('[roadmap] строки с "!" но без названия:', skipped);
 
     console.log('[roadmap] начало данных со строки:', dataStart, '/ найдено маркеров "!":', matches.length, matches);
 
     allEvents = matches.sort((a, b) => a.date - b.date);
+    eventsSource = 'таблица';
     populateEventsPanel();
 
     const upcoming = matches
@@ -1167,6 +1234,7 @@ function processRoadmapCSV(text){
 
 let tickerMessages = [];
 let allEvents = [];
+let eventsSource = 'резервный список';
 
 // Fallback: если браузер не сможет прочитать таблицу (блокировщики, сеть),
 // используем эти данные. Обновятся сами, как только загрузка сработает.
@@ -1198,7 +1266,7 @@ function populateEventsPanel(){
   const future = allEvents.filter(e => e.date >= today).length;
   const count = document.createElement('div');
   count.className = 'events-count';
-  count.textContent = `Всего: ${allEvents.length} · впереди: ${future}`;
+  count.textContent = `Всего: ${allEvents.length} · впереди: ${future} · источник: ${eventsSource}`;
   panel.appendChild(count);
   allEvents.forEach(ev => {
     const row = document.createElement('div');
