@@ -1162,20 +1162,21 @@ function processRoadmapCSV(text){
       colDate[c] = new Date(year, monthOf[c], dayOf[c]);
     }
 
-    /* Раньше название бралось жёстко из row[1] (колонка B), и любая строка,
-       где название лежит в колонке A или C, пропускалась целиком — вместе со
-       всеми своими маркерами "!". Из-за этого список был неполным.
-       Теперь берём последнюю непустую ячейку ЛЕВЕЕ сетки дат. */
+    /* Название события берётся строго из колонки B. */
+    const NAME_COL = 1;
     const dateCols = Object.keys(colDate).map(Number).sort((a, b) => a - b);
-    const firstDateCol = dateCols.length ? dateCols[0] : 2;
-    console.log('[roadmap] колонок с датами:', dateCols.length, '/ сетка дат начинается с колонки:', firstDateCol);
+    // Колонки A и B — это название, маркеры там не ищем никогда
+    const firstDateCol = Math.max(dateCols.length ? dateCols[0] : 2, 2);
+    if(dateCols.length){
+      const f = colDate[dateCols[0]], l = colDate[dateCols[dateCols.length - 1]];
+      console.log('[roadmap] сетка дат: колонки', dateCols[0], '…', dateCols[dateCols.length - 1],
+                  '=', formatEventDate(f), '…', formatEventDate(l), '/ всего колонок:', dateCols.length);
+    } else {
+      console.error('[roadmap] сетка дат пустая — ни одна колонка не получила дату');
+    }
 
     function rowName(row){
-      for(let c = Math.min(firstDateCol, row.length) - 1; c >= 0; c--){
-        const v = (row[c] || '').trim();
-        if(v) return v;
-      }
-      return '';
+      return (row[NAME_COL] || '').trim();
     }
 
     const dataStart = dayRow + 1;
@@ -1215,7 +1216,7 @@ function processRoadmapCSV(text){
     console.log('[roadmap] будущих событий:', upcoming.length, upcoming);
 
     if(upcoming.length){
-      tickerMessages = upcoming.map(m => {
+      tickerMessages = upcoming.slice(0, TICKER_MAX_ITEMS).map(m => {
         const days = Math.round((m.date - today) / 86400000);
         return {
           text: `До мероприятия «${m.name}» осталось ${formatRemaining(today, m.date)} · ${formatEventDate(m.date)}`,
@@ -1299,6 +1300,12 @@ const TICKER_FADE_MS   = 600;   // затухание / появление
 const TICKER_MIN_MS    = 6000;  // минимум времени на одно сообщение
 const TICKER_END_PAUSE = 2500;  // пауза после докрутки длинного текста
 const TICKER_SPEED     = 40;    // px в секунду
+/* Сколько ближайших событий крутить в ленте.
+   При 12 событиях круг занимал ~90 секунд, и каждое конкретное
+   мероприятие появлялось раз в полторы минуты — ленту было
+   бесполезно смотреть. Пять ближайших дают круг ~35 секунд.
+   Полный список остаётся в кнопке «Смотреть списком». */
+const TICKER_MAX_ITEMS = 5;
 
 let tickerIndex = 0;
 let tickerPaused = false;
@@ -1567,7 +1574,7 @@ const _today = new Date();
 _today.setHours(0,0,0,0);
 const _upcoming = allEvents.filter(m => m.date >= _today);
 if(_upcoming.length){
-  tickerMessages = _upcoming.map(m => {
+  tickerMessages = _upcoming.slice(0, TICKER_MAX_ITEMS).map(m => {
     const days = Math.round((m.date - _today) / 86400000);
     return {
       text: `До мероприятия «${m.name}» осталось ${formatRemaining(_today, m.date)} · ${formatEventDate(m.date)}`,
