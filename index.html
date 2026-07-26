@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ссылки</title>
+<script>
+  /* Ставим тему ДО отрисовки страницы, иначе при перезагрузке в тёмной
+     теме успевает мигнуть белый фон. */
+  (function(){
+    var saved = null;
+    try{ saved = localStorage.getItem('dashboardTheme'); }catch(e){}
+    if(saved !== 'dark' && saved !== 'light'){
+      saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', saved);
+  })();
+</script>
 <style>
   :root{
     --bg:#f5f5f7;
@@ -194,6 +206,25 @@
   .dd-ticker-wrap.show{
     opacity:1;
   }
+  .dd-ticker-wrap:hover{
+    cursor:default;
+  }
+  /* Мягкое затемнение правого края — видно, что текст продолжается */
+  .dd-ticker-wrap::after{
+    content:"";
+    position:absolute;
+    right:0;
+    top:0;
+    bottom:0;
+    width:24px;
+    pointer-events:none;
+    background:linear-gradient(to right, transparent, var(--bg));
+    opacity:0;
+    transition:opacity .3s ease;
+  }
+  .dd-ticker-wrap.scrolling::after{
+    opacity:1;
+  }
   .dd-actions{
     display:flex;
     gap:6px;
@@ -281,6 +312,7 @@
     position:absolute;
     left:0;
     top:0;
+    will-change:transform;
     transition:color .3s ease;
   }
   .dd-ticker.urgent{
@@ -775,7 +807,7 @@ async function loadOrderFromFirebase(){
   try{
     const saved = await fbGet('dashboard/order');
     if(Array.isArray(saved) && saved.length){
-      linksData.sort((a, b) => saved.indexOf(a.name) - saved.indexOf(b.name));
+      sortByOrder(saved);
       render(currentQuery);
     }
     try{ syncCount = (await fbGet('dashboard/syncCount')) || 0; }catch(e){}
@@ -785,12 +817,19 @@ async function loadOrderFromFirebase(){
   updateSyncBar('done');
 }
 
+/* Раньше сортировка была `saved.indexOf(a.name) - saved.indexOf(b.name)`.
+   Для новой категории indexOf возвращает -1, и она прыгала в самый верх.
+   Теперь неизвестные имена уходят в конец, сохраняя порядок из таблицы. */
+function sortByOrder(order){
+  if(!Array.isArray(order) || !order.length) return;
+  const rank = new Map(order.map((name, i) => [name, i]));
+  const BIG = order.length + 1;
+  linksData.sort((a, b) => (rank.has(a.name) ? rank.get(a.name) : BIG) - (rank.has(b.name) ? rank.get(b.name) : BIG));
+}
+
 function applySavedOrder(){
   try{
-    const saved = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
-    if(Array.isArray(saved) && saved.length){
-      linksData.sort((a, b) => saved.indexOf(a.name) - saved.indexOf(b.name));
-    }
+    sortByOrder(JSON.parse(localStorage.getItem(ORDER_KEY) || 'null'));
   }catch(e){}
 }
 
@@ -832,9 +871,10 @@ function render(filter){
 
     const head = document.createElement('p');
     head.className = 'cat-title';
-    head.innerHTML = reorderMode
-      ? `<span class="drag-handle"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.6"></circle><circle cx="16" cy="6" r="1.6"></circle><circle cx="8" cy="12" r="1.6"></circle><circle cx="16" cy="12" r="1.6"></circle><circle cx="8" cy="18" r="1.6"></circle><circle cx="16" cy="18" r="1.6"></circle></svg></span>${cat.name}`
-      : cat.name;
+    if(reorderMode){
+      head.innerHTML = '<span class="drag-handle"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.6"></circle><circle cx="16" cy="6" r="1.6"></circle><circle cx="8" cy="12" r="1.6"></circle><circle cx="16" cy="12" r="1.6"></circle><circle cx="8" cy="18" r="1.6"></circle><circle cx="16" cy="18" r="1.6"></circle></svg></span>';
+    }
+    head.appendChild(document.createTextNode(cat.name));
     section.appendChild(head);
 
     if(reorderMode){
@@ -876,7 +916,9 @@ function render(filter){
       pill.href = l.url;
       pill.target = '_blank';
       pill.rel = 'noopener noreferrer';
-      pill.innerHTML = `<span>${l.title}</span>`;
+      const label = document.createElement('span');
+      label.textContent = l.title;
+      pill.appendChild(label);
       pills.appendChild(pill);
     });
 
@@ -899,7 +941,20 @@ function renderDate(){
   el.innerHTML = `<span class="day">${weekdayCap}</span><br>${dateStr}<br>${timeStr}`;
 }
 renderDate();
-setInterval(renderDate, 30000);
+
+/* Раньше было setInterval(renderDate, 30000) — часы могли отставать
+   до 30 секунд. Теперь первый тик подгоняется к границе минуты,
+   дальше ровно раз в минуту. Плюс обновляем при возврате на вкладку. */
+(function startClock(){
+  const msToNextMinute = 60000 - (Date.now() % 60000);
+  setTimeout(() => {
+    renderDate();
+    setInterval(renderDate, 60000);
+  }, msToNextMinute + 50);
+  document.addEventListener('visibilitychange', () => {
+    if(!document.hidden) renderDate();
+  });
+})();
 
 /*
   Дорожная карта: читает лист "Активности" (гид 147658334) через
@@ -1066,8 +1121,7 @@ function processRoadmapCSV(text){
         };
       });
       console.log('[roadmap] сообщения тикера:', tickerMessages);
-      document.getElementById('ddSep').style.display = 'block';
-      showNextTicker();
+      startTicker();
     } else {
       console.warn('[roadmap] маркеры есть, но все даты в прошлом либо не распознаны');
     }
@@ -1120,96 +1174,233 @@ function populateEventsPanel(){
     panel.appendChild(row);
   });
 }
+/* ------------------------------------------------------------------
+   Тикер мероприятий.
+
+   Важно: раньше showNextTicker() запускался из ДВУХ мест (fallback-список
+   сразу при загрузке + разбор таблицы, когда она приедет) и ещё раз при
+   каждом нажатии «Обновить». Каждый запуск создавал СВОЮ цепочку
+   setTimeout, цепочки шли параллельно и перебивали друг друга — из-за
+   этого сообщения мелькали доли секунды. Теперь цепочка ровно одна:
+   startTicker() гасит предыдущую перед запуском новой.
+
+   Прокрутку ведёт requestAnimationFrame, а не CSS-transition, — только
+   так её можно честно поставить на паузу и продолжить с того же места.
+------------------------------------------------------------------- */
+const TICKER_FADE_MS   = 600;   // затухание / появление
+const TICKER_MIN_MS    = 6000;  // минимум времени на одно сообщение
+const TICKER_END_PAUSE = 2500;  // пауза после докрутки длинного текста
+const TICKER_SPEED     = 40;    // px в секунду
+
 let tickerIndex = 0;
+let tickerPaused = false;
+let tickerRAF = null;
+let tickerFadeTimer = null;
+let tickerJob = null;
+let tickerSignature = null;
+
+function stopTicker(){
+  if(tickerRAF){ cancelAnimationFrame(tickerRAF); tickerRAF = null; }
+  if(tickerFadeTimer){ clearTimeout(tickerFadeTimer); tickerFadeTimer = null; }
+  tickerJob = null;
+}
+
+function tickerFrame(now){
+  tickerRAF = null;
+  const job = tickerJob;
+  if(!job) return;
+  const dt = now - job.last;
+  job.last = now;
+  if(!tickerPaused){
+    job.elapsed += dt;
+    if(job.onProgress) job.onProgress(Math.min(job.elapsed, job.duration));
+  }
+  if(job.elapsed >= job.duration){
+    tickerJob = null;
+    job.done();
+    return;
+  }
+  tickerRAF = requestAnimationFrame(tickerFrame);
+}
+
+// Отсчёт, который замирает, пока tickerPaused === true
+function tickerRun(duration, onProgress, done){
+  if(tickerRAF) cancelAnimationFrame(tickerRAF);
+  tickerJob = { duration, onProgress, done, elapsed: 0, last: performance.now() };
+  tickerRAF = requestAnimationFrame(tickerFrame);
+}
+
+// Единственная точка входа. Перезапускает тикер, только если список
+// сообщений реально изменился, — иначе кнопка «Обновить» сбрасывала бы
+// текущее сообщение на первое.
+function startTicker(force){
+  if(!tickerMessages.length) return;
+  const sig = JSON.stringify(tickerMessages.map(m => typeof m === 'string' ? m : m.text));
+  if(!force && sig === tickerSignature) return;
+  tickerSignature = sig;
+
+  stopTicker();
+  tickerIndex = 0;
+  const sep = document.getElementById('ddSep');
+  if(sep) sep.style.display = 'block';
+  showNextTicker();
+}
 
 function showNextTicker(){
   if(!tickerMessages.length) return;
   const wrap = document.getElementById('ddTickerWrap');
   const el = document.getElementById('ddTicker');
+  if(!wrap || !el) return;
 
-  // Сброс: убираем видимость, ждём затухание, потом ставим текст
-  wrap.classList.remove('show');
+  stopTicker();
+  wrap.classList.remove('show', 'scrolling');
 
-  setTimeout(() => {
-    el.style.transition = 'none';
+  tickerFadeTimer = setTimeout(() => {
+    const raw = tickerMessages[tickerIndex];
+    const msg = (typeof raw === 'string') ? { text: raw, urgent: false } : raw;
+
     el.style.transform = 'translateX(0)';
-    const msg = tickerMessages[tickerIndex];
-    if(typeof msg === 'string'){
-      el.textContent = msg;
-      el.classList.remove('urgent');
-    } else {
-      el.textContent = msg.text;
-      el.classList.toggle('urgent', !!msg.urgent);
-    }
-
-    // Форсируем reflow, чтобы браузер применил textContent и transition:none
-    void el.offsetWidth;
-
+    el.textContent = msg.text;
+    el.classList.toggle('urgent', !!msg.urgent);
+    void el.offsetWidth; // reflow, чтобы scrollWidth посчитался по новому тексту
     wrap.classList.add('show');
 
-    // Даём время появиться, потом решаем — прокручивать или нет
-    setTimeout(() => {
-      const overflow = el.scrollWidth - wrap.clientWidth;
-
+    tickerFadeTimer = setTimeout(() => {
+      const overflow = Math.max(0, el.scrollWidth - wrap.clientWidth);
       const next = () => {
         tickerIndex = (tickerIndex + 1) % tickerMessages.length;
         showNextTicker();
       };
 
       if(overflow > 0){
-        const scrollDuration = Math.max(2, overflow / 40);
-        el.style.transition = `transform ${scrollDuration}s linear`;
-        el.style.transform = `translateX(-${overflow}px)`;
-        // Ждём: прокрутка + 5 сек паузы на конце
-        setTimeout(next, scrollDuration * 1000 + 5000);
+        wrap.classList.add('scrolling');
+        const scrollMs = Math.max(2000, (overflow / TICKER_SPEED) * 1000);
+        const total = Math.max(TICKER_MIN_MS, scrollMs + TICKER_END_PAUSE);
+        tickerRun(total, (t) => {
+          const p = Math.min(1, t / scrollMs);
+          el.style.transform = `translateX(-${(overflow * p).toFixed(1)}px)`;
+        }, next);
       } else {
-        // Ровно 5 секунд стоим
-        setTimeout(next, 5000);
+        // Короткое сообщение — стоит ровно TICKER_MIN_MS
+        tickerRun(TICKER_MIN_MS, null, next);
       }
-    }, 600);
-  }, 600);
+    }, TICKER_FADE_MS);
+  }, TICKER_FADE_MS);
+}
+
+// Пауза при наведении: замирает и прокрутка, и отсчёт до следующего
+// сообщения. Убрал курсор — продолжает ровно с того же места.
+(function initTickerPause(){
+  const wrap = document.getElementById('ddTickerWrap');
+  if(!wrap) return;
+  const pause  = () => { tickerPaused = true;  };
+  const resume = () => { tickerPaused = false; };
+  wrap.addEventListener('mouseenter', pause);
+  wrap.addEventListener('mouseleave', resume);
+  wrap.addEventListener('touchstart', pause, { passive: true });
+  wrap.addEventListener('touchend', resume);
+  wrap.addEventListener('touchcancel', resume);
+  // Вкладка неактивна — не крутим впустую
+  document.addEventListener('visibilitychange', () => {
+    tickerPaused = document.hidden ? true : wrap.matches(':hover');
+  });
+})();
+
+/* ------------------------------------------------------------------
+   Общий загрузчик Google-таблиц.
+
+   Раньше обе таблицы (ссылки и роадмап) писали в ОДИН глобальный колбэк
+   google.visualization.Query.setResponse. При наложении ответов данные
+   роадмапа могли попасть в обработчик ссылок. Теперь на каждый запрос
+   генерируется уникальное имя колбэка и передаётся через
+   tqx=out:json;responseHandler:<имя> — таблицы больше не пересекаются.
+
+   Порядок попыток:
+     1) JSONP (без CORS, без прокси)
+     2) прямой fetch CSV (иногда проходит)
+     3) публичные CORS-прокси по очереди — только как крайняя мера,
+        потому что прокси видит содержимое таблицы
+------------------------------------------------------------------- */
+let gvizCallbackSeq = 0;
+
+const CORS_PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`
+];
+
+function gvizToCSV(resp){
+  const rows = resp.table.rows.map(r => (r.c || []).map(c => (c && (c.f || c.v) != null) ? String(c.f || c.v) : ''));
+  return rows.map(r => r.map(v => `"${(v || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+}
+
+// tag — префикс для логов, onCSV(text) — что делать с данными,
+// onDone() — вызывается ровно один раз, чем бы дело ни кончилось
+function loadSheet(tag, sheetId, gid, onCSV, onDone){
+  let settled = false;
+  const finish = (ok) => {
+    if(settled) return;
+    settled = true;
+    if(!ok) console.error(`[${tag}] все способы загрузки не сработали`);
+    if(onDone) onDone();
+  };
+
+  const cbName = `__gviz_${tag}_${++gvizCallbackSeq}`;
+  const scriptId = `${tag}-loader-script`;
+  const old = document.getElementById(scriptId);
+  if(old) old.remove();
+
+  let answered = false;
+  const cleanup = () => {
+    try{ delete window[cbName]; }catch(e){ window[cbName] = undefined; }
+    const s = document.getElementById(scriptId);
+    if(s) s.remove();
+  };
+
+  window[cbName] = function(resp){
+    answered = true;
+    console.log(`[${tag}] получен ответ от таблицы`);
+    cleanup();
+    if(!resp || resp.status !== 'ok'){
+      console.error(`[${tag}] таблица вернула ошибку:`, resp && (resp.errors || resp.status));
+      tryCSV();
+      return;
+    }
+    try{ onCSV(gvizToCSV(resp)); finish(true); }
+    catch(e){ console.error(`[${tag}] ошибка обработки:`, e); finish(false); }
+  };
+
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+
+  function tryCSV(i = -1){
+    if(settled) return;
+    const url = (i < 0) ? csvUrl : (CORS_PROXIES[i] && CORS_PROXIES[i](csvUrl));
+    if(!url){ finish(false); return; }
+    if(i >= 0) console.warn(`[${tag}] пробую CORS-прокси #${i + 1}`);
+    fetch(url)
+      .then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))
+      .then(text => {
+        if(settled) return;
+        console.log(`[${tag}] CSV получен, символов:`, text.length);
+        onCSV(text);
+        finish(true);
+      })
+      .catch(e => {
+        console.warn(`[${tag}] источник не сработал:`, e.message || e);
+        tryCSV(i + 1);
+      });
+  }
+
+  const script = document.createElement('script');
+  script.id = scriptId;
+  script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?gid=${gid}&headers=0&tqx=out:json;responseHandler:${cbName}`;
+  script.onerror = () => { cleanup(); if(!answered) tryCSV(); };
+  console.log(`[${tag}] загружаю (JSONP)`);
+  document.body.appendChild(script);
+  setTimeout(() => { if(!answered && !settled){ console.warn(`[${tag}] таймаут JSONP`); cleanup(); tryCSV(); } }, 5000);
 }
 
 function loadRoadmap(){
-  window.google = window.google || {};
-  window.google.visualization = window.google.visualization || {};
-  window.google.visualization.Query = window.google.visualization.Query || {};
-  window.google.visualization.Query.setResponse = function(resp){
-    console.log('[roadmap] получен ответ от таблицы:', resp);
-    if(!resp || resp.status !== 'ok'){
-      console.error('[roadmap] таблица вернула ошибку:', resp && (resp.errors || resp.status));
-      return;
-    }
-    const rows = resp.table.rows.map(r => (r.c || []).map(c => (c && (c.f || c.v) != null) ? String(c.f || c.v) : ''));
-    const csvLike = rows.map(r => r.map(v => `"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
-    processRoadmapCSV(csvLike);
-  };
-
-  const oldScript = document.getElementById('roadmap-loader-script');
-  if(oldScript) oldScript.remove();
-
-  const script = document.createElement('script');
-  script.id = 'roadmap-loader-script';
-  script.src = `https://docs.google.com/spreadsheets/d/${ROADMAP_SHEET_ID}/gviz/tq?gid=${ROADMAP_GID}&headers=0&tqx=out:json`;
-  console.log('[roadmap] загружаю (JSONP):', script.src);
-  let loaded = false;
-  script.onload = () => { loaded = true; console.log('[roadmap] скрипт загружен успешно'); };
-  script.onerror = (e) => {
-    console.error('[roadmap] скрипт НЕ загрузился, пробую через CSV+прокси:', e);
-    fetchRoadmapViaProxy();
-  };
-  document.body.appendChild(script);
-  setTimeout(() => { if(!loaded){ console.warn('[roadmap] таймаут JSONP, пробую CSV+прокси'); fetchRoadmapViaProxy(); } }, 4000);
-}
-
-function fetchRoadmapViaProxy(){
-  const csvUrl = `https://docs.google.com/spreadsheets/d/${ROADMAP_SHEET_ID}/export?format=csv&gid=${ROADMAP_GID}`;
-  const proxied = `https://corsproxy.io/?${encodeURIComponent(csvUrl)}`;
-  console.log('[roadmap] fallback fetch:', proxied);
-  fetch(proxied)
-    .then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))
-    .then(text => { console.log('[roadmap] fallback ok, символов:', text.length); processRoadmapCSV(text); })
-    .catch(e => console.error('[roadmap] fallback тоже упал:', e));
+  loadSheet('roadmap', ROADMAP_SHEET_ID, ROADMAP_GID, processRoadmapCSV);
 }
 
 const LINKS_SHEET_ID = '1xM2j5tKaIIN-nFhj9z9uNU1-1u3pQFflHJBslLlHI00';
@@ -1250,53 +1441,16 @@ function processLinksCSV(text){
 }
 
 function loadLinksData(){
-  window.google = window.google || {};
-  window.google.visualization = window.google.visualization || {};
-  window.google.visualization.Query = window.google.visualization.Query || {};
-  window.google.visualization.Query.setResponse = function(resp){
-    console.log('[links] получен ответ от таблицы:', resp);
-    if(!resp || resp.status !== 'ok'){
-      console.error('[links] таблица вернула ошибку:', resp && (resp.errors || resp.status));
-      loadRoadmap();
-      return;
-    }
-    const rows = resp.table.rows.map(r => (r.c || []).map(c => (c && (c.f || c.v) != null) ? String(c.f || c.v) : ''));
-    const csvLike = rows.map(r => r.map(v => `"${(v || '').replace(/"/g,'""')}"`).join(',')).join('\n');
-    processLinksCSV(csvLike);
-    loadRoadmap();
-  };
-
-  const oldScript = document.getElementById('links-loader-script');
-  if(oldScript) oldScript.remove();
-
-  const script = document.createElement('script');
-  script.id = 'links-loader-script';
-  script.src = `https://docs.google.com/spreadsheets/d/${LINKS_SHEET_ID}/gviz/tq?gid=${LINKS_GID}&headers=0&tqx=out:json`;
-  console.log('[links] загружаю (JSONP):', script.src);
-  let loaded = false;
-  script.onload = () => { loaded = true; console.log('[links] скрипт загружен успешно'); };
-  script.onerror = (e) => {
-    console.error('[links] скрипт НЕ загрузился, пробую через CSV+прокси:', e);
-    fetchLinksViaProxy();
-  };
-  document.body.appendChild(script);
-  setTimeout(() => { if(!loaded){ console.warn('[links] таймаут JSONP, пробую CSV+прокси'); fetchLinksViaProxy(); } }, 4000);
+  loadSheet('links', LINKS_SHEET_ID, LINKS_GID, processLinksCSV);
 }
 
-function fetchLinksViaProxy(){
-  const csvUrl = `https://docs.google.com/spreadsheets/d/${LINKS_SHEET_ID}/export?format=csv&gid=${LINKS_GID}`;
-  const proxied = `https://corsproxy.io/?${encodeURIComponent(csvUrl)}`;
-  console.log('[links] fallback fetch:', proxied);
-  fetch(proxied)
-    .then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))
-    .then(text => {
-      console.log('[links] fallback ok, символов:', text.length);
-      processLinksCSV(text);
-      loadRoadmap();
-    })
-    .catch(e => { console.error('[links] fallback тоже упал:', e); loadRoadmap(); });
+// Колбэки теперь уникальные, поэтому таблицы можно грузить параллельно,
+// а не ждать ссылки перед роадмапом.
+function loadAll(){
+  loadLinksData();
+  loadRoadmap();
 }
-loadLinksData();
+loadAll();
 
 // Применяем fallback для мероприятий сразу — если таблица потом загрузится,
 // данные перезапишутся, а если нет — хотя бы этот список будет виден.
@@ -1312,8 +1466,7 @@ if(_upcoming.length){
       urgent: days < 14
     };
   });
-  document.getElementById('ddSep').style.display = 'block';
-  showNextTicker();
+  startTicker();
 }
 populateEventsPanel();
 
@@ -1326,15 +1479,16 @@ render('');
 const syncRefreshBtn = document.getElementById('syncRefresh');
 syncRefreshBtn.addEventListener('click', () => {
   syncRefreshBtn.classList.add('spinning');
-  loadLinksData();
+  loadAll();
   setTimeout(() => syncRefreshBtn.classList.remove('spinning'), 800);
 });
 
 const themeToggle = document.getElementById('themeToggle');
 themeToggle.addEventListener('click', () => {
   const root = document.documentElement;
-  const isDark = root.getAttribute('data-theme') === 'dark';
-  root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  try{ localStorage.setItem('dashboardTheme', next); }catch(e){}
 });
 
 const reorderToggle = document.getElementById('reorderToggle');
