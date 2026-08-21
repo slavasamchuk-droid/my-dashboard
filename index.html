@@ -4,18 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ссылки</title>
-<script>
-  /* Ставим тему ДО отрисовки страницы, иначе при перезагрузке в тёмной
-     теме успевает мигнуть белый фон. */
-  (function(){
-    var saved = null;
-    try{ saved = localStorage.getItem('dashboardTheme'); }catch(e){}
-    if(saved !== 'dark' && saved !== 'light'){
-      saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-    }
-    document.documentElement.setAttribute('data-theme', saved);
-  })();
-</script>
 <style>
   :root{
     --bg:#f5f5f7;
@@ -145,6 +133,145 @@
   .settings-menu a:hover{
     background:rgba(118,118,128,0.08);
   }
+  .settings-menu button.menu-item{
+    display:block;
+    width:100%;
+    text-align:left;
+    padding:8px 12px;
+    color:var(--text);
+    background:none;
+    border:none;
+    border-radius:8px;
+    font-size:13px;
+    font-family:inherit;
+    cursor:pointer;
+    transition:background .12s;
+  }
+  .settings-menu button.menu-item:hover{
+    background:rgba(118,118,128,0.08);
+  }
+
+  .admin-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.4);
+    z-index:200;
+    justify-content:center;
+    align-items:center;
+  }
+  .admin-overlay.open{
+    display:flex;
+  }
+  .admin-panel{
+    background:var(--panel);
+    border-radius:16px;
+    padding:28px 24px;
+    width:90%;
+    max-width:480px;
+    max-height:85vh;
+    overflow-y:auto;
+    box-shadow:0 16px 48px rgba(0,0,0,0.15);
+    position:relative;
+  }
+  .admin-panel h2{
+    font-size:18px;
+    font-weight:600;
+    margin:0 0 20px;
+  }
+  .admin-close{
+    position:absolute;
+    top:16px;
+    right:16px;
+    background:none;
+    border:none;
+    color:var(--text-secondary);
+    cursor:pointer;
+    font-size:20px;
+    line-height:1;
+    padding:4px;
+  }
+  .admin-close:hover{color:var(--text);}
+  .admin-form{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-bottom:20px;
+  }
+  .admin-form input, .admin-form select{
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    font-size:14px;
+    font-family:inherit;
+    background:var(--bg);
+    color:var(--text);
+    outline:none;
+  }
+  .admin-form input:focus, .admin-form select:focus{
+    border-color:var(--accent);
+  }
+  .admin-form input::placeholder{color:var(--text-tertiary);}
+  .admin-btn{
+    padding:10px 16px;
+    border:none;
+    border-radius:10px;
+    font-size:14px;
+    font-weight:500;
+    font-family:inherit;
+    cursor:pointer;
+    background:var(--accent);
+    color:#fff;
+    transition:opacity .15s;
+  }
+  .admin-btn:hover{opacity:0.85;}
+  .admin-btn.danger{background:#ff3b30;}
+  .admin-list{
+    border-top:1px solid var(--border);
+    padding-top:16px;
+  }
+  .admin-list h3{
+    font-size:14px;
+    font-weight:600;
+    color:var(--text-secondary);
+    margin:0 0 10px;
+  }
+  .admin-link-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:8px 0;
+    border-bottom:1px solid var(--border);
+    font-size:13px;
+  }
+  .admin-link-item:last-child{border-bottom:none;}
+  .admin-link-info{
+    flex:1;
+    min-width:0;
+  }
+  .admin-link-title{
+    color:var(--text);
+    font-weight:500;
+  }
+  .admin-link-cat{
+    color:var(--text-tertiary);
+    font-size:11px;
+  }
+  .admin-link-del{
+    background:none;
+    border:none;
+    color:var(--text-tertiary);
+    cursor:pointer;
+    font-size:16px;
+    padding:4px 6px;
+    border-radius:6px;
+    transition:color .12s, background .12s;
+  }
+  .admin-link-del:hover{
+    color:#ff3b30;
+    background:rgba(255,59,48,0.08);
+  }
 
   .top-bar-actions{
     display:flex;
@@ -178,8 +305,6 @@
     font-size:13px;
     color:var(--text-secondary);
     line-height:1.3;
-    flex:1 1 auto;
-    min-width:0;
   }
   .date-display .day{
     font-weight:600;
@@ -190,9 +315,6 @@
     align-items:center;
     gap:10px;
   }
-  .dd-row > #ddDate{
-    flex:0 0 auto;
-  }
   .dd-sep{
     width:1px;
     align-self:stretch;
@@ -202,38 +324,13 @@
   }
   .dd-ticker-wrap{
     overflow:hidden;
-    /* Раньше было жёстко width:480px — длинные сообщения резались и
-       бесконечно ползли, хотя справа пустовало полэкрана. Теперь окно
-       занимает всё свободное место: большинство сообщений влезает
-       целиком и просто стоит 6 секунд без прокрутки. */
-    flex:1 1 auto;
-    min-width:0;
-    max-width:none;
+    width:480px;
     position:relative;
     height:16px;
     opacity:0;
     transition:opacity .6s ease;
   }
   .dd-ticker-wrap.show{
-    opacity:1;
-  }
-  .dd-ticker-wrap:hover{
-    cursor:default;
-  }
-  /* Мягкое затемнение правого края — видно, что текст продолжается */
-  .dd-ticker-wrap::after{
-    content:"";
-    position:absolute;
-    right:0;
-    top:0;
-    bottom:0;
-    width:24px;
-    pointer-events:none;
-    background:linear-gradient(to right, transparent, var(--bg));
-    opacity:0;
-    transition:opacity .3s ease;
-  }
-  .dd-ticker-wrap.scrolling::after{
     opacity:1;
   }
   .dd-actions{
@@ -253,19 +350,12 @@
     border:1px solid var(--border);
     border-radius:10px;
     padding:10px 12px;
-    max-height:420px;
+    max-height:280px;
     overflow-y:auto;
     font-size:12px;
     color:var(--text-secondary);
     box-shadow:var(--shadow);
-    max-width:420px;
-  }
-  .events-panel .events-count{
-    font-size:11px;
-    color:var(--text-tertiary);
-    padding-bottom:6px;
-    margin-bottom:4px;
-    border-bottom:1px solid var(--border);
+    max-width:340px;
   }
   .events-panel.open{
     display:block;
@@ -330,7 +420,6 @@
     position:absolute;
     left:0;
     top:0;
-    will-change:transform;
     transition:color .3s ease;
   }
   .dd-ticker.urgent{
@@ -742,6 +831,23 @@
   <p class="empty" id="emptyState">Ничего не найдено</p>
 </div>
 
+<div class="admin-overlay" id="adminOverlay">
+  <div class="admin-panel">
+    <button class="admin-close" id="adminClose">&times;</button>
+    <h2>Админка</h2>
+    <div class="admin-form">
+      <input type="text" id="adminCat" placeholder="Категория (напр. Аналитика)">
+      <input type="text" id="adminTitle" placeholder="Название кнопки">
+      <input type="url" id="adminUrl" placeholder="https://...">
+      <button class="admin-btn" id="adminAdd">Добавить ссылку</button>
+    </div>
+    <div class="admin-list">
+      <h3>Добавленные через админку</h3>
+      <div id="adminLinksList"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 /*
   Как добавить свои ссылки:
@@ -825,7 +931,7 @@ async function loadOrderFromFirebase(){
   try{
     const saved = await fbGet('dashboard/order');
     if(Array.isArray(saved) && saved.length){
-      sortByOrder(saved);
+      linksData.sort((a, b) => saved.indexOf(a.name) - saved.indexOf(b.name));
       render(currentQuery);
     }
     try{ syncCount = (await fbGet('dashboard/syncCount')) || 0; }catch(e){}
@@ -835,19 +941,12 @@ async function loadOrderFromFirebase(){
   updateSyncBar('done');
 }
 
-/* Раньше сортировка была `saved.indexOf(a.name) - saved.indexOf(b.name)`.
-   Для новой категории indexOf возвращает -1, и она прыгала в самый верх.
-   Теперь неизвестные имена уходят в конец, сохраняя порядок из таблицы. */
-function sortByOrder(order){
-  if(!Array.isArray(order) || !order.length) return;
-  const rank = new Map(order.map((name, i) => [name, i]));
-  const BIG = order.length + 1;
-  linksData.sort((a, b) => (rank.has(a.name) ? rank.get(a.name) : BIG) - (rank.has(b.name) ? rank.get(b.name) : BIG));
-}
-
 function applySavedOrder(){
   try{
-    sortByOrder(JSON.parse(localStorage.getItem(ORDER_KEY) || 'null'));
+    const saved = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
+    if(Array.isArray(saved) && saved.length){
+      linksData.sort((a, b) => saved.indexOf(a.name) - saved.indexOf(b.name));
+    }
   }catch(e){}
 }
 
@@ -889,10 +988,9 @@ function render(filter){
 
     const head = document.createElement('p');
     head.className = 'cat-title';
-    if(reorderMode){
-      head.innerHTML = '<span class="drag-handle"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.6"></circle><circle cx="16" cy="6" r="1.6"></circle><circle cx="8" cy="12" r="1.6"></circle><circle cx="16" cy="12" r="1.6"></circle><circle cx="8" cy="18" r="1.6"></circle><circle cx="16" cy="18" r="1.6"></circle></svg></span>';
-    }
-    head.appendChild(document.createTextNode(cat.name));
+    head.innerHTML = reorderMode
+      ? `<span class="drag-handle"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.6"></circle><circle cx="16" cy="6" r="1.6"></circle><circle cx="8" cy="12" r="1.6"></circle><circle cx="16" cy="12" r="1.6"></circle><circle cx="8" cy="18" r="1.6"></circle><circle cx="16" cy="18" r="1.6"></circle></svg></span>${cat.name}`
+      : cat.name;
     section.appendChild(head);
 
     if(reorderMode){
@@ -934,9 +1032,7 @@ function render(filter){
       pill.href = l.url;
       pill.target = '_blank';
       pill.rel = 'noopener noreferrer';
-      const label = document.createElement('span');
-      label.textContent = l.title;
-      pill.appendChild(label);
+      pill.innerHTML = `<span>${l.title}</span>`;
       pills.appendChild(pill);
     });
 
@@ -959,20 +1055,7 @@ function renderDate(){
   el.innerHTML = `<span class="day">${weekdayCap}</span><br>${dateStr}<br>${timeStr}`;
 }
 renderDate();
-
-/* Раньше было setInterval(renderDate, 30000) — часы могли отставать
-   до 30 секунд. Теперь первый тик подгоняется к границе минуты,
-   дальше ровно раз в минуту. Плюс обновляем при возврате на вкладку. */
-(function startClock(){
-  const msToNextMinute = 60000 - (Date.now() % 60000);
-  setTimeout(() => {
-    renderDate();
-    setInterval(renderDate, 60000);
-  }, msToNextMinute + 50);
-  document.addEventListener('visibilitychange', () => {
-    if(!document.hidden) renderDate();
-  });
-})();
+setInterval(renderDate, 30000);
 
 /*
   Дорожная карта: читает лист "Активности" (гид 147658334) через
@@ -988,13 +1071,6 @@ const RU_MONTHS = {
   'январь':0,'февраль':1,'март':2,'апрель':3,'май':4,'июнь':5,
   'июль':6,'август':7,'сентябрь':8,'октябрь':9,'ноябрь':10,'декабрь':11
 };
-/* Короткие корни — ловят и «Ноябрь», и «ноя», и «нояб.», и «ноября».
-   Порядок важен: «мар» должен проверяться раньше «май» не мешает,
-   но «июн»/«июл» обязаны идти до «ию». */
-const RU_MONTH_STEMS = [
-  ['янв',0],['фев',1],['февр',1],['мар',2],['апр',3],['мая',4],['май',4],
-  ['июн',5],['июл',6],['авг',7],['сен',8],['окт',9],['ноя',10],['дек',11]
-];
 
 function pluralDays(n){
   const mod10 = n % 10, mod100 = n % 100;
@@ -1041,14 +1117,10 @@ function formatEventDate(d){
 }
 
 function findMonthIndex(cellText){
-  if(cellText == null) return null;
-  const t = cellText.toString().trim().toLowerCase().replace(/ё/g, 'е');
-  if(!t) return null;
+  if(!cellText) return null;
+  const t = cellText.toString().trim().toLowerCase();
   for(const name in RU_MONTHS){
     if(t.startsWith(name)) return RU_MONTHS[name];
-  }
-  for(let i = 0; i < RU_MONTH_STEMS.length; i++){
-    if(t.startsWith(RU_MONTH_STEMS[i][0])) return RU_MONTH_STEMS[i][1];
   }
   return null;
 }
@@ -1081,132 +1153,58 @@ function processRoadmapCSV(text){
     console.log('[roadmap] всего строк:', rows.length);
     if(!rows.length) return;
 
-    /* Ширина сетки считается по ВСЕМ строкам.
-       Раньше цикл шёл до rows[monthRow].length — а gviz обрезает
-       у каждой строки пустой «хвост», поэтому строка месяцев почти
-       всегда короче строки чисел. Все колонки правее обрезки дат не
-       получали, и события из этих месяцев терялись. */
-    const width = rows.reduce((w, r) => Math.max(w, r ? r.length : 0), 0);
-    console.log('[roadmap] ширина сетки:', width);
-
-    // Строка месяцев — та, где названий месяцев БОЛЬШЕ ВСЕГО,
-    // а не просто первая попавшаяся с одним словом «Июль» в заголовке.
-    let monthRow = -1, bestMonths = 0;
-    for(let i = 0; i < Math.min(rows.length, 40); i++){
-      let n = 0;
-      for(let c = 0; c < rows[i].length; c++) if(findMonthIndex(rows[i][c]) !== null) n++;
-      if(n > bestMonths){ bestMonths = n; monthRow = i; }
+    let monthRow = -1;
+    for(let i = 0; i < rows.length; i++){
+      if(rows[i].some(cell => findMonthIndex(cell) !== null)){ monthRow = i; break; }
     }
-    if(monthRow === -1){ console.error('[roadmap] не нашёл строку с названиями месяцев'); return; }
-
-    const isDayNum = (v) => {
-      const n = parseInt(v, 10);
-      return !isNaN(n) && n >= 1 && n <= 31 && String(v).trim().length <= 2;
-    };
-    // Строка чисел — не обязательно ровно следующая: ищем в ближайших
-    // четырёх строках ту, где больше всего чисел 1–31.
-    let dayRow = -1, bestDays = 0;
-    for(let i = monthRow; i <= Math.min(monthRow + 4, rows.length - 1); i++){
-      let n = 0;
-      for(let c = 0; c < rows[i].length; c++) if(isDayNum(rows[i][c])) n++;
-      if(n > bestDays){ bestDays = n; dayRow = i; }
-    }
-    if(dayRow === -1 || !bestDays){ console.error('[roadmap] не нашёл строку с числами дней'); return; }
-    console.log('[roadmap] строка месяцев:', monthRow, '(названий:', bestMonths + ')',
-                '/ строка чисел:', dayRow, '(чисел:', bestDays + ')');
+    if(monthRow === -1){ console.error('[roadmap] не нашёл строку с названием месяца'); return; }
+    const dayRow = monthRow + 1;
+    if(!rows[dayRow]){ console.error('[roadmap] нет строки с числами дней после строки месяцев'); return; }
+    console.log('[roadmap] строка месяцев:', monthRow, 'строка дней:', dayRow);
 
     const today = new Date();
     today.setHours(0,0,0,0);
+    const baseYear = today.getFullYear();
 
-    // 1) Месяц для каждой колонки: протяжка вправо от подписи
-    //    (объединённые ячейки приходят пустыми — держим последний месяц)
-    const monthOf = new Array(width).fill(null);
-    let cur = null;
-    for(let c = 0; c < width; c++){
-      const m = findMonthIndex((rows[monthRow] || [])[c]);
-      if(m !== null) cur = m;
-      monthOf[c] = cur;
-    }
-
-    // 2) Дни
-    const dayOf = new Array(width).fill(null);
-    for(let c = 0; c < width; c++){
-      const v = (rows[dayRow] || [])[c];
-      if(isDayNum(v)) dayOf[c] = parseInt(v, 10);
-    }
-
-    /* 3) Колонки ЛЕВЕЕ первой подписи месяца.
-       Раньше они просто выбрасывались (curMonth === null → continue),
-       из-за чего терялось всё начало календаря. Теперь идём справа
-       налево от первого известного месяца: если число растёт при
-       движении влево — значит перешли в предыдущий месяц. */
-    let firstKnown = monthOf.findIndex(m => m !== null);
-    if(firstKnown > 0){
-      let m = monthOf[firstKnown];
-      let nextDay = dayOf[firstKnown];
-      for(let c = firstKnown - 1; c >= 0; c--){
-        if(dayOf[c] === null) continue;
-        if(nextDay !== null && dayOf[c] > nextDay) m = (m + 11) % 12;
-        monthOf[c] = m;
-        nextDay = dayOf[c];
-      }
-    }
-
-    // 4) Год: считаем от первой колонки, увеличиваем на переходе через декабрь
     const colDate = {};
-    let year = today.getFullYear(), prevMonth = null;
-    for(let c = 0; c < width; c++){
-      if(dayOf[c] === null || monthOf[c] === null) continue;
-      if(prevMonth !== null && monthOf[c] < prevMonth) year++;
-      prevMonth = monthOf[c];
-      colDate[c] = new Date(year, monthOf[c], dayOf[c]);
+    let curMonth = null, year = baseYear, prevMonth = null, prevDay = null;
+    for(let c = 0; c < rows[monthRow].length; c++){
+      const labelMonth = findMonthIndex(rows[monthRow][c]);
+      const dayVal = parseInt(rows[dayRow][c], 10);
+      if(isNaN(dayVal)){ prevDay = null; continue; }
+
+      if(labelMonth !== null){
+        curMonth = labelMonth;
+      } else if(curMonth !== null && prevDay !== null && dayVal < prevDay){
+        curMonth = (curMonth + 1) % 12;
+      }
+      if(curMonth === null){ prevDay = dayVal; continue; }
+
+      if(prevMonth !== null && curMonth < prevMonth) year++;
+      prevMonth = curMonth;
+      prevDay = dayVal;
+      colDate[c] = new Date(year, curMonth, dayVal);
     }
 
-    /* Название события берётся строго из колонки B. */
-    const NAME_COL = 1;
-    const dateCols = Object.keys(colDate).map(Number).sort((a, b) => a - b);
-    // Колонки A и B — это название, маркеры там не ищем никогда
-    const firstDateCol = Math.max(dateCols.length ? dateCols[0] : 2, 2);
-    if(dateCols.length){
-      const f = colDate[dateCols[0]], l = colDate[dateCols[dateCols.length - 1]];
-      console.log('[roadmap] сетка дат: колонки', dateCols[0], '…', dateCols[dateCols.length - 1],
-                  '=', formatEventDate(f), '…', formatEventDate(l), '/ всего колонок:', dateCols.length);
-    } else {
-      console.error('[roadmap] сетка дат пустая — ни одна колонка не получила дату');
-    }
+    let dataStart = dayRow + 1;
+    while(dataStart < rows.length && !rows[dataStart][0] && !rows[dataStart][1]) dataStart++;
 
-    function rowName(row){
-      return (row[NAME_COL] || '').trim();
-    }
-
-    const dataStart = dayRow + 1;
     const matches = [];
-    const seen = new Set();
-    let lastName = '';   // протяжка вниз для вертикально объединённых названий
     for(let r = dataStart; r < rows.length; r++){
       const row = rows[r];
       if(!row) continue;
-      const ownName = rowName(row);
-      if(ownName) lastName = ownName;
-
-      for(let c = firstDateCol; c < row.length; c++){
-        const cell = row[c];
-        if(!cell || !colDate[c]) continue;
-        // «!» может прийти как обычный, так и полноширинный «！»
-        if(cell.indexOf(ROADMAP_MARKER) === -1 && cell.indexOf('！') === -1) continue;
-        const name = ownName || lastName;
-        if(!name){ console.warn('[roadmap] маркер без названия, строка', r, 'колонка', c); continue; }
-        const key = name + '@' + colDate[c].getTime();
-        if(seen.has(key)) continue;
-        seen.add(key);
-        matches.push({ name, date: colDate[c] });
+      const name = row[1] && row[1].trim();
+      if(!name) continue;
+      for(let c = 2; c < row.length; c++){
+        if(row[c] && row[c].includes(ROADMAP_MARKER) && colDate[c]){
+          matches.push({ name, date: colDate[c] });
+        }
       }
     }
 
     console.log('[roadmap] начало данных со строки:', dataStart, '/ найдено маркеров "!":', matches.length, matches);
 
     allEvents = matches.sort((a, b) => a.date - b.date);
-    eventsSource = 'таблица';
     populateEventsPanel();
 
     const upcoming = matches
@@ -1216,7 +1214,7 @@ function processRoadmapCSV(text){
     console.log('[roadmap] будущих событий:', upcoming.length, upcoming);
 
     if(upcoming.length){
-      tickerMessages = upcoming.slice(0, TICKER_MAX_ITEMS).map(m => {
+      tickerMessages = upcoming.map(m => {
         const days = Math.round((m.date - today) / 86400000);
         return {
           text: `До мероприятия «${m.name}» осталось ${formatRemaining(today, m.date)} · ${formatEventDate(m.date)}`,
@@ -1224,7 +1222,8 @@ function processRoadmapCSV(text){
         };
       });
       console.log('[roadmap] сообщения тикера:', tickerMessages);
-      startTicker();
+      document.getElementById('ddSep').style.display = 'block';
+      showNextTicker();
     } else {
       console.warn('[roadmap] маркеры есть, но все даты в прошлом либо не распознаны');
     }
@@ -1235,7 +1234,6 @@ function processRoadmapCSV(text){
 
 let tickerMessages = [];
 let allEvents = [];
-let eventsSource = 'резервный список';
 
 // Fallback: если браузер не сможет прочитать таблицу (блокировщики, сеть),
 // используем эти данные. Обновятся сами, как только загрузка сработает.
@@ -1264,11 +1262,6 @@ function populateEventsPanel(){
   }
   const today = new Date();
   today.setHours(0,0,0,0);
-  const future = allEvents.filter(e => e.date >= today).length;
-  const count = document.createElement('div');
-  count.className = 'events-count';
-  count.textContent = `Всего: ${allEvents.length} · впереди: ${future} · источник: ${eventsSource}`;
-  panel.appendChild(count);
   allEvents.forEach(ev => {
     const row = document.createElement('div');
     row.className = 'event-row' + (ev.date < today ? ' past' : '');
@@ -1283,273 +1276,96 @@ function populateEventsPanel(){
     panel.appendChild(row);
   });
 }
-/* ------------------------------------------------------------------
-   Тикер мероприятий.
-
-   Важно: раньше showNextTicker() запускался из ДВУХ мест (fallback-список
-   сразу при загрузке + разбор таблицы, когда она приедет) и ещё раз при
-   каждом нажатии «Обновить». Каждый запуск создавал СВОЮ цепочку
-   setTimeout, цепочки шли параллельно и перебивали друг друга — из-за
-   этого сообщения мелькали доли секунды. Теперь цепочка ровно одна:
-   startTicker() гасит предыдущую перед запуском новой.
-
-   Прокрутку ведёт requestAnimationFrame, а не CSS-transition, — только
-   так её можно честно поставить на паузу и продолжить с того же места.
-------------------------------------------------------------------- */
-const TICKER_FADE_MS   = 600;   // затухание / появление
-const TICKER_MIN_MS    = 6000;  // минимум времени на одно сообщение
-const TICKER_END_PAUSE = 2500;  // пауза после докрутки длинного текста
-const TICKER_SPEED     = 40;    // px в секунду
-/* Сколько ближайших событий крутить в ленте.
-   При 12 событиях круг занимал ~90 секунд, и каждое конкретное
-   мероприятие появлялось раз в полторы минуты — ленту было
-   бесполезно смотреть. Пять ближайших дают круг ~35 секунд.
-   Полный список остаётся в кнопке «Смотреть списком». */
-const TICKER_MAX_ITEMS = 5;
-
 let tickerIndex = 0;
-let tickerPaused = false;
-let tickerRAF = null;
-let tickerFadeTimer = null;
-let tickerJob = null;
-let tickerSignature = null;
-
-function stopTicker(){
-  if(tickerRAF){ cancelAnimationFrame(tickerRAF); tickerRAF = null; }
-  if(tickerFadeTimer){ clearTimeout(tickerFadeTimer); tickerFadeTimer = null; }
-  tickerJob = null;
-}
-
-function tickerFrame(now){
-  tickerRAF = null;
-  const job = tickerJob;
-  if(!job) return;
-  const dt = now - job.last;
-  job.last = now;
-  if(!tickerPaused){
-    job.elapsed += dt;
-    if(job.onProgress) job.onProgress(Math.min(job.elapsed, job.duration));
-  }
-  if(job.elapsed >= job.duration){
-    tickerJob = null;
-    job.done();
-    return;
-  }
-  tickerRAF = requestAnimationFrame(tickerFrame);
-}
-
-// Отсчёт, который замирает, пока tickerPaused === true
-function tickerRun(duration, onProgress, done){
-  if(tickerRAF) cancelAnimationFrame(tickerRAF);
-  tickerJob = { duration, onProgress, done, elapsed: 0, last: performance.now() };
-  tickerRAF = requestAnimationFrame(tickerFrame);
-}
-
-// Единственная точка входа. Перезапускает тикер, только если список
-// сообщений реально изменился, — иначе кнопка «Обновить» сбрасывала бы
-// текущее сообщение на первое.
-function startTicker(force){
-  if(!tickerMessages.length) return;
-  const sig = JSON.stringify(tickerMessages.map(m => typeof m === 'string' ? m : m.text));
-  if(!force && sig === tickerSignature) return;
-  tickerSignature = sig;
-
-  stopTicker();
-  tickerIndex = 0;
-  const sep = document.getElementById('ddSep');
-  if(sep) sep.style.display = 'block';
-  showNextTicker();
-}
 
 function showNextTicker(){
   if(!tickerMessages.length) return;
   const wrap = document.getElementById('ddTickerWrap');
   const el = document.getElementById('ddTicker');
-  if(!wrap || !el) return;
 
-  stopTicker();
-  wrap.classList.remove('show', 'scrolling');
+  // Сброс: убираем видимость, ждём затухание, потом ставим текст
+  wrap.classList.remove('show');
 
-  tickerFadeTimer = setTimeout(() => {
-    const raw = tickerMessages[tickerIndex];
-    const msg = (typeof raw === 'string') ? { text: raw, urgent: false } : raw;
-
+  setTimeout(() => {
+    el.style.transition = 'none';
     el.style.transform = 'translateX(0)';
-    el.textContent = msg.text;
-    el.classList.toggle('urgent', !!msg.urgent);
-    void el.offsetWidth; // reflow, чтобы scrollWidth посчитался по новому тексту
+    const msg = tickerMessages[tickerIndex];
+    if(typeof msg === 'string'){
+      el.textContent = msg;
+      el.classList.remove('urgent');
+    } else {
+      el.textContent = msg.text;
+      el.classList.toggle('urgent', !!msg.urgent);
+    }
+
+    // Форсируем reflow, чтобы браузер применил textContent и transition:none
+    void el.offsetWidth;
+
     wrap.classList.add('show');
 
-    tickerFadeTimer = setTimeout(() => {
-      const overflow = Math.max(0, el.scrollWidth - wrap.clientWidth);
+    // Даём время появиться, потом решаем — прокручивать или нет
+    setTimeout(() => {
+      const overflow = el.scrollWidth - wrap.clientWidth;
+
       const next = () => {
         tickerIndex = (tickerIndex + 1) % tickerMessages.length;
         showNextTicker();
       };
 
       if(overflow > 0){
-        wrap.classList.add('scrolling');
-        const scrollMs = Math.max(2000, (overflow / TICKER_SPEED) * 1000);
-        const total = Math.max(TICKER_MIN_MS, scrollMs + TICKER_END_PAUSE);
-        tickerRun(total, (t) => {
-          const p = Math.min(1, t / scrollMs);
-          el.style.transform = `translateX(-${(overflow * p).toFixed(1)}px)`;
-        }, next);
+        const scrollDuration = Math.max(2, overflow / 40);
+        el.style.transition = `transform ${scrollDuration}s linear`;
+        el.style.transform = `translateX(-${overflow}px)`;
+        // Ждём: прокрутка + 5 сек паузы на конце
+        setTimeout(next, scrollDuration * 1000 + 5000);
       } else {
-        // Короткое сообщение — стоит ровно TICKER_MIN_MS
-        tickerRun(TICKER_MIN_MS, null, next);
+        // Ровно 5 секунд стоим
+        setTimeout(next, 5000);
       }
-    }, TICKER_FADE_MS);
-  }, TICKER_FADE_MS);
-}
-
-// Пауза при наведении: замирает и прокрутка, и отсчёт до следующего
-// сообщения. Убрал курсор — продолжает ровно с того же места.
-(function initTickerPause(){
-  const wrap = document.getElementById('ddTickerWrap');
-  if(!wrap) return;
-  const pause  = () => { tickerPaused = true;  };
-  const resume = () => { tickerPaused = false; };
-  wrap.addEventListener('mouseenter', pause);
-  wrap.addEventListener('mouseleave', resume);
-  wrap.addEventListener('touchstart', pause, { passive: true });
-  wrap.addEventListener('touchend', resume);
-  wrap.addEventListener('touchcancel', resume);
-  // Вкладка неактивна — не крутим впустую
-  document.addEventListener('visibilitychange', () => {
-    tickerPaused = document.hidden ? true : wrap.matches(':hover');
-  });
-})();
-
-/* ------------------------------------------------------------------
-   Общий загрузчик Google-таблиц.
-
-   Раньше обе таблицы (ссылки и роадмап) писали в ОДИН глобальный колбэк
-   google.visualization.Query.setResponse. При наложении ответов данные
-   роадмапа могли попасть в обработчик ссылок. Теперь на каждый запрос
-   генерируется уникальное имя колбэка и передаётся через
-   tqx=out:json;responseHandler:<имя> — таблицы больше не пересекаются.
-
-   Порядок попыток:
-     1) JSONP (без CORS, без прокси)
-     2) прямой fetch CSV (иногда проходит)
-     3) публичные CORS-прокси по очереди — только как крайняя мера,
-        потому что прокси видит содержимое таблицы
-------------------------------------------------------------------- */
-let gvizCallbackSeq = 0;
-
-const CORS_PROXIES = [
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`
-];
-
-function gvizToCSV(resp){
-  const rows = resp.table.rows.map(r => (r.c || []).map(c => (c && (c.f || c.v) != null) ? String(c.f || c.v) : ''));
-  return rows.map(r => r.map(v => `"${(v || '').replace(/"/g, '""')}"`).join(',')).join('\n');
-}
-
-/* Разбирает подпись колонки из двухстрочной шапки gviz.
-   «июль 24» → ['июль','24'],  «25» → ['','25'] */
-function splitHeaderLabel(label){
-  const t = (label == null ? '' : String(label)).trim();
-  const m = t.match(/^(.*?)\s*(\d{1,2})$/);
-  if(m) return [m[1].trim(), m[2]];
-  return [t, ''];
-}
-
-/* Когда шапка занимает две строки (месяц + число), просим gviz считать
-   их заголовком: headers=2. Это критично — иначе gviz приводит каждую
-   колонку к одному типу, видит в верхней строке число и объявляет
-   колонку числовой, а все «!» ниже отдаёт как null. Маркеры пропадают
-   ещё до парсера. С headers=2 в данных остаются только «!» и пустоты,
-   тип колонки — строка, и ничего не теряется.
-   Месяц и число потом восстанавливаем из подписей колонок. */
-function gvizToCSVWithHeader(resp){
-  const cols = resp.table.cols || [];
-  const monthRow = [], dayRow = [];
-  cols.forEach(col => {
-    const [m, d] = splitHeaderLabel(col && col.label);
-    monthRow.push(m);
-    dayRow.push(d);
-  });
-  const body = resp.table.rows.map(r => (r.c || []).map(c => (c && (c.f || c.v) != null) ? String(c.f || c.v) : ''));
-  const all = [monthRow, dayRow].concat(body);
-  return all.map(r => r.map(v => `"${(v || '').replace(/"/g, '""')}"`).join(',')).join('\n');
-}
-
-// tag — префикс для логов, onCSV(text) — что делать с данными,
-// onDone() — вызывается ровно один раз, чем бы дело ни кончилось
-function loadSheet(tag, sheetId, gid, onCSV, opts){
-  opts = opts || {};
-  const headerRows = opts.headerRows || 0;
-  const onDone = opts.onDone;
-  let settled = false;
-  const finish = (ok) => {
-    if(settled) return;
-    settled = true;
-    if(!ok) console.error(`[${tag}] все способы загрузки не сработали`);
-    if(onDone) onDone();
-  };
-
-  const cbName = `__gviz_${tag}_${++gvizCallbackSeq}`;
-  const scriptId = `${tag}-loader-script`;
-  const old = document.getElementById(scriptId);
-  if(old) old.remove();
-
-  let answered = false;
-  const cleanup = () => {
-    try{ delete window[cbName]; }catch(e){ window[cbName] = undefined; }
-    const s = document.getElementById(scriptId);
-    if(s) s.remove();
-  };
-
-  window[cbName] = function(resp){
-    answered = true;
-    console.log(`[${tag}] получен ответ от таблицы`);
-    cleanup();
-    if(!resp || resp.status !== 'ok'){
-      console.error(`[${tag}] таблица вернула ошибку:`, resp && (resp.errors || resp.status));
-      tryCSV();
-      return;
-    }
-    try{ onCSV(headerRows === 2 ? gvizToCSVWithHeader(resp) : gvizToCSV(resp)); finish(true); }
-    catch(e){ console.error(`[${tag}] ошибка обработки:`, e); finish(false); }
-  };
-
-  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
-
-  function tryCSV(i = -1){
-    if(settled) return;
-    const url = (i < 0) ? csvUrl : (CORS_PROXIES[i] && CORS_PROXIES[i](csvUrl));
-    if(!url){ finish(false); return; }
-    if(i >= 0) console.warn(`[${tag}] пробую CORS-прокси #${i + 1}`);
-    fetch(url)
-      .then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))
-      .then(text => {
-        if(settled) return;
-        console.log(`[${tag}] CSV получен, символов:`, text.length);
-        onCSV(text);
-        finish(true);
-      })
-      .catch(e => {
-        console.warn(`[${tag}] источник не сработал:`, e.message || e);
-        tryCSV(i + 1);
-      });
-  }
-
-  const script = document.createElement('script');
-  script.id = scriptId;
-  script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?gid=${gid}&headers=${headerRows}&tqx=out:json;responseHandler:${cbName}`;
-  script.onerror = () => { cleanup(); if(!answered) tryCSV(); };
-  console.log(`[${tag}] загружаю (JSONP)`);
-  document.body.appendChild(script);
-  setTimeout(() => { if(!answered && !settled){ console.warn(`[${tag}] таймаут JSONP`); cleanup(); tryCSV(); } }, 5000);
+    }, 600);
+  }, 600);
 }
 
 function loadRoadmap(){
-  // headerRows: 2 — строка месяцев и строка чисел объявлены шапкой,
-  // иначе gviz типизирует колонки как числовые и вырезает все «!»
-  loadSheet('roadmap', ROADMAP_SHEET_ID, ROADMAP_GID, processRoadmapCSV, { headerRows: 2 });
+  window.google = window.google || {};
+  window.google.visualization = window.google.visualization || {};
+  window.google.visualization.Query = window.google.visualization.Query || {};
+  window.google.visualization.Query.setResponse = function(resp){
+    console.log('[roadmap] получен ответ от таблицы:', resp);
+    if(!resp || resp.status !== 'ok'){
+      console.error('[roadmap] таблица вернула ошибку:', resp && (resp.errors || resp.status));
+      return;
+    }
+    const rows = resp.table.rows.map(r => (r.c || []).map(c => (c && (c.f || c.v) != null) ? String(c.f || c.v) : ''));
+    const csvLike = rows.map(r => r.map(v => `"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    processRoadmapCSV(csvLike);
+  };
+
+  const oldScript = document.getElementById('roadmap-loader-script');
+  if(oldScript) oldScript.remove();
+
+  const script = document.createElement('script');
+  script.id = 'roadmap-loader-script';
+  script.src = `https://docs.google.com/spreadsheets/d/${ROADMAP_SHEET_ID}/gviz/tq?gid=${ROADMAP_GID}&headers=0&tqx=out:json`;
+  console.log('[roadmap] загружаю (JSONP):', script.src);
+  let loaded = false;
+  script.onload = () => { loaded = true; console.log('[roadmap] скрипт загружен успешно'); };
+  script.onerror = (e) => {
+    console.error('[roadmap] скрипт НЕ загрузился, пробую через CSV+прокси:', e);
+    fetchRoadmapViaProxy();
+  };
+  document.body.appendChild(script);
+  setTimeout(() => { if(!loaded){ console.warn('[roadmap] таймаут JSONP, пробую CSV+прокси'); fetchRoadmapViaProxy(); } }, 4000);
+}
+
+function fetchRoadmapViaProxy(){
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${ROADMAP_SHEET_ID}/export?format=csv&gid=${ROADMAP_GID}`;
+  const proxied = `https://corsproxy.io/?${encodeURIComponent(csvUrl)}`;
+  console.log('[roadmap] fallback fetch:', proxied);
+  fetch(proxied)
+    .then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))
+    .then(text => { console.log('[roadmap] fallback ok, символов:', text.length); processRoadmapCSV(text); })
+    .catch(e => console.error('[roadmap] fallback тоже упал:', e));
 }
 
 const LINKS_SHEET_ID = '1xM2j5tKaIIN-nFhj9z9uNU1-1u3pQFflHJBslLlHI00';
@@ -1590,16 +1406,53 @@ function processLinksCSV(text){
 }
 
 function loadLinksData(){
-  loadSheet('links', LINKS_SHEET_ID, LINKS_GID, processLinksCSV);
+  window.google = window.google || {};
+  window.google.visualization = window.google.visualization || {};
+  window.google.visualization.Query = window.google.visualization.Query || {};
+  window.google.visualization.Query.setResponse = function(resp){
+    console.log('[links] получен ответ от таблицы:', resp);
+    if(!resp || resp.status !== 'ok'){
+      console.error('[links] таблица вернула ошибку:', resp && (resp.errors || resp.status));
+      loadRoadmap();
+      return;
+    }
+    const rows = resp.table.rows.map(r => (r.c || []).map(c => (c && (c.f || c.v) != null) ? String(c.f || c.v) : ''));
+    const csvLike = rows.map(r => r.map(v => `"${(v || '').replace(/"/g,'""')}"`).join(',')).join('\n');
+    processLinksCSV(csvLike);
+    loadRoadmap();
+  };
+
+  const oldScript = document.getElementById('links-loader-script');
+  if(oldScript) oldScript.remove();
+
+  const script = document.createElement('script');
+  script.id = 'links-loader-script';
+  script.src = `https://docs.google.com/spreadsheets/d/${LINKS_SHEET_ID}/gviz/tq?gid=${LINKS_GID}&headers=0&tqx=out:json`;
+  console.log('[links] загружаю (JSONP):', script.src);
+  let loaded = false;
+  script.onload = () => { loaded = true; console.log('[links] скрипт загружен успешно'); };
+  script.onerror = (e) => {
+    console.error('[links] скрипт НЕ загрузился, пробую через CSV+прокси:', e);
+    fetchLinksViaProxy();
+  };
+  document.body.appendChild(script);
+  setTimeout(() => { if(!loaded){ console.warn('[links] таймаут JSONP, пробую CSV+прокси'); fetchLinksViaProxy(); } }, 4000);
 }
 
-// Колбэки теперь уникальные, поэтому таблицы можно грузить параллельно,
-// а не ждать ссылки перед роадмапом.
-function loadAll(){
-  loadLinksData();
-  loadRoadmap();
+function fetchLinksViaProxy(){
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${LINKS_SHEET_ID}/export?format=csv&gid=${LINKS_GID}`;
+  const proxied = `https://corsproxy.io/?${encodeURIComponent(csvUrl)}`;
+  console.log('[links] fallback fetch:', proxied);
+  fetch(proxied)
+    .then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))
+    .then(text => {
+      console.log('[links] fallback ok, символов:', text.length);
+      processLinksCSV(text);
+      loadRoadmap();
+    })
+    .catch(e => { console.error('[links] fallback тоже упал:', e); loadRoadmap(); });
 }
-loadAll();
+loadLinksData();
 
 // Применяем fallback для мероприятий сразу — если таблица потом загрузится,
 // данные перезапишутся, а если нет — хотя бы этот список будет виден.
@@ -1608,14 +1461,15 @@ const _today = new Date();
 _today.setHours(0,0,0,0);
 const _upcoming = allEvents.filter(m => m.date >= _today);
 if(_upcoming.length){
-  tickerMessages = _upcoming.slice(0, TICKER_MAX_ITEMS).map(m => {
+  tickerMessages = _upcoming.map(m => {
     const days = Math.round((m.date - _today) / 86400000);
     return {
       text: `До мероприятия «${m.name}» осталось ${formatRemaining(_today, m.date)} · ${formatEventDate(m.date)}`,
       urgent: days < 14
     };
   });
-  startTicker();
+  document.getElementById('ddSep').style.display = 'block';
+  showNextTicker();
 }
 populateEventsPanel();
 
@@ -1628,16 +1482,15 @@ render('');
 const syncRefreshBtn = document.getElementById('syncRefresh');
 syncRefreshBtn.addEventListener('click', () => {
   syncRefreshBtn.classList.add('spinning');
-  loadAll();
+  loadLinksData();
   setTimeout(() => syncRefreshBtn.classList.remove('spinning'), 800);
 });
 
 const themeToggle = document.getElementById('themeToggle');
 themeToggle.addEventListener('click', () => {
   const root = document.documentElement;
-  const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  root.setAttribute('data-theme', next);
-  try{ localStorage.setItem('dashboardTheme', next); }catch(e){}
+  const isDark = root.getAttribute('data-theme') === 'dark';
+  root.setAttribute('data-theme', isDark ? 'light' : 'dark');
 });
 
 const reorderToggle = document.getElementById('reorderToggle');
@@ -1670,6 +1523,14 @@ function populateSettingsMenu(){
     a.textContent = l.title;
     menu.appendChild(a);
   });
+  const adminBtn = document.createElement('button');
+  adminBtn.className = 'menu-item';
+  adminBtn.textContent = 'Админка';
+  adminBtn.addEventListener('click', () => {
+    settingsMenu.classList.remove('open');
+    openAdmin();
+  });
+  menu.appendChild(adminBtn);
 }
 
 const settingsToggle = document.getElementById('settingsToggle');
@@ -1684,6 +1545,118 @@ document.addEventListener('click', (e) => {
     settingsMenu.classList.remove('open');
   }
 });
+
+// ===== АДМИНКА =====
+let adminLinks = [];
+
+function openAdmin(){
+  document.getElementById('adminOverlay').classList.add('open');
+  loadAdminLinks();
+}
+function closeAdmin(){
+  document.getElementById('adminOverlay').classList.remove('open');
+}
+
+document.getElementById('adminClose').addEventListener('click', closeAdmin);
+document.getElementById('adminOverlay').addEventListener('click', (e) => {
+  if(e.target === document.getElementById('adminOverlay')) closeAdmin();
+});
+
+async function loadAdminLinks(){
+  try{
+    const data = await fbGet('links');
+    adminLinks = data ? Object.entries(data).map(([id, v]) => ({id, ...v})) : [];
+  }catch(e){
+    adminLinks = [];
+  }
+  renderAdminList();
+}
+
+function renderAdminList(){
+  const list = document.getElementById('adminLinksList');
+  list.innerHTML = '';
+  if(!adminLinks.length){
+    list.innerHTML = '<div style="color:var(--text-tertiary);font-size:12px;padding:8px 0;">Пока нет добавленных ссылок</div>';
+    return;
+  }
+  adminLinks.forEach(link => {
+    const item = document.createElement('div');
+    item.className = 'admin-link-item';
+    item.innerHTML = `
+      <div class="admin-link-info">
+        <div class="admin-link-title">${link.title}</div>
+        <div class="admin-link-cat">${link.category} · ${link.url}</div>
+      </div>
+      <button class="admin-link-del" data-id="${link.id}" title="Удалить">×</button>
+    `;
+    item.querySelector('.admin-link-del').addEventListener('click', () => deleteAdminLink(link.id));
+    list.appendChild(item);
+  });
+}
+
+document.getElementById('adminAdd').addEventListener('click', async () => {
+  const cat = document.getElementById('adminCat').value.trim();
+  const title = document.getElementById('adminTitle').value.trim();
+  const url = document.getElementById('adminUrl').value.trim();
+  if(!cat || !title || !url){ alert('Заполни все три поля'); return; }
+
+  const btn = document.getElementById('adminAdd');
+  btn.textContent = 'Сохраняю…';
+  btn.disabled = true;
+
+  try{
+    const id = 'link_' + Date.now();
+    await fbPut('links/' + id, { category: cat, title, url });
+    document.getElementById('adminCat').value = '';
+    document.getElementById('adminTitle').value = '';
+    document.getElementById('adminUrl').value = '';
+    await loadAdminLinks();
+    await mergeAdminLinksIntoDashboard();
+  }catch(e){
+    alert('Ошибка сохранения: ' + e.message);
+  }
+  btn.textContent = 'Добавить ссылку';
+  btn.disabled = false;
+});
+
+async function deleteAdminLink(id){
+  if(!confirm('Удалить эту ссылку?')) return;
+  try{
+    await fetch(`${FIREBASE_URL}/links/${id}.json`, { method: 'DELETE' });
+    await loadAdminLinks();
+    await mergeAdminLinksIntoDashboard();
+  }catch(e){
+    alert('Ошибка удаления: ' + e.message);
+  }
+}
+
+async function mergeAdminLinksIntoDashboard(){
+  try{
+    const data = await fbGet('links');
+    const fbLinks = data ? Object.values(data) : [];
+    if(!fbLinks.length){ render(currentQuery); updateSyncBar('done'); return; }
+
+    const map = new Map();
+    linksData.forEach(cat => { map.set(cat.name, [...cat.links]); });
+
+    fbLinks.forEach(l => {
+      const cat = l.category || 'Без категории';
+      if(!map.has(cat)) map.set(cat, []);
+      const exists = map.get(cat).some(existing => existing.url === l.url);
+      if(!exists) map.get(cat).push({ title: l.title, url: l.url });
+    });
+
+    linksData = Array.from(map.entries()).map(([name, links]) => ({ name, links }));
+    applySavedOrder();
+    render(currentQuery);
+    updateSyncBar('done');
+  }catch(e){
+    console.error('[admin] ошибка слияния:', e);
+  }
+}
+
+// При загрузке страницы подгрузить ссылки из Firebase и вмержить
+setTimeout(() => mergeAdminLinksIntoDashboard(), 2000);
 </script>
 
 </body>
