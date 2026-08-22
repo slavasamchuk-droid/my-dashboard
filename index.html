@@ -28,6 +28,7 @@
     --shadow-hover:none;
   }
   *{box-sizing:border-box;}
+  html{background:var(--bg);}
   #cosmosCanvas{
     position:fixed;
     top:0;left:0;
@@ -45,11 +46,11 @@
   .admin-overlay{z-index:200;}
   body{
     margin:0;
-    background:var(--bg);
+    background:transparent;
     color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
     -webkit-font-smoothing:antialiased;
-    transition:background .3s ease, color .3s ease;
+    transition:color .3s ease;
   }
   .sync-bar{
     display:flex;
@@ -614,40 +615,56 @@
   .pills{
     display:flex;
     flex-wrap:wrap;
-    gap:8px;
+    gap:12px;
   }
   a.pill{
-    display:inline-flex;
+    display:flex;
+    flex-direction:column;
     align-items:center;
-    gap:8px;
+    gap:6px;
     text-decoration:none;
-    color:var(--text);
+    width:64px;
+  }
+  a.pill .pill-icon{
+    width:46px;
+    height:46px;
+    border-radius:14px;
     background:var(--panel);
     border:1px solid var(--border);
-    border-radius:20px;
-    padding:9px 16px;
-    font-size:14px;
-    font-weight:500;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+    font-weight:600;
+    color:var(--text-secondary);
     box-shadow:var(--shadow);
-    transition:transform .12s, box-shadow .12s;
+    transition:transform .15s, box-shadow .15s, background .15s, color .15s;
   }
-  a.pill:hover{
-    transform:translateY(-1px);
+  a.pill .pill-label{
+    font-size:11px;
+    color:var(--text-secondary);
+    text-align:center;
+    line-height:1.2;
+    word-break:break-word;
+    max-width:64px;
+  }
+  a.pill:hover .pill-icon{
+    transform:translateY(-2px) scale(1.05);
     box-shadow:var(--shadow-hover);
     background:#1b4d2e;
     color:#ffffff;
     border-color:#1b4d2e;
   }
-  a.pill:active{transform:translateY(0);}
+  a.pill:active .pill-icon{transform:translateY(0) scale(1);}
 
-  html[data-theme="dark"] a.pill{
+  html[data-theme="dark"] a.pill .pill-icon{
     background:var(--panel);
     border:1px solid rgba(43,219,122,0.4);
     color:#4fd18a;
     box-shadow:none;
-    transition:transform .12s, color .4s ease-in-out, border-color .4s ease-in-out, box-shadow .4s ease-in-out;
+    transition:transform .15s, color .4s ease-in-out, border-color .4s ease-in-out, box-shadow .4s ease-in-out;
   }
-  html[data-theme="dark"] a.pill:hover{
+  html[data-theme="dark"] a.pill:hover .pill-icon{
     color:#ff8fc9;
     border-color:#ff2d95;
     background:var(--panel);
@@ -1044,7 +1061,8 @@ function render(filter){
       pill.href = l.url;
       pill.target = '_blank';
       pill.rel = 'noopener noreferrer';
-      pill.innerHTML = `<span>${l.title}</span>`;
+      const initial = l.title.trim().charAt(0).toUpperCase();
+      pill.innerHTML = `<span class="pill-icon">${initial}</span><span class="pill-label">${l.title}</span>`;
       pills.appendChild(pill);
     });
 
