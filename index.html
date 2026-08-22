@@ -28,7 +28,31 @@
     --shadow-hover:none;
   }
   *{box-sizing:border-box;}
-  html{background:var(--bg);}
+  html{
+    background:linear-gradient(135deg, #e8dff5, #fce4ec, #e0f7fa, #f3e5f5, #e8f5e9, #fff3e0);
+    background-size:600% 600%;
+    animation:auroraShift 25s ease-in-out infinite;
+    min-height:100vh;
+  }
+  @keyframes auroraShift{
+    0%{background-position:0% 50%;}
+    25%{background-position:50% 0%;}
+    50%{background-position:100% 50%;}
+    75%{background-position:50% 100%;}
+    100%{background-position:0% 50%;}
+  }
+  html[data-theme="dark"]{
+    background:linear-gradient(135deg, #0c0e13, #12101f, #0e1318, #151020, #0c1215, #10101a);
+    background-size:600% 600%;
+    animation:auroraShiftDark 25s ease-in-out infinite;
+  }
+  @keyframes auroraShiftDark{
+    0%{background-position:0% 50%;}
+    25%{background-position:50% 0%;}
+    50%{background-position:100% 50%;}
+    75%{background-position:50% 100%;}
+    100%{background-position:0% 50%;}
+  }
   #cosmosCanvas{
     position:fixed;
     top:0;left:0;
@@ -553,7 +577,16 @@
   input#searchInput:focus{background:rgba(118,118,128,0.14);}
   input#searchInput::placeholder{color:var(--text-tertiary);}
 
-  section.category{margin-bottom:32px;}
+  section.category{margin-bottom:20px;}
+
+  #content{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px 32px;
+  }
+  @media (max-width:600px){
+    #content{grid-template-columns:1fr;}
+  }
   section.category.draggable{
     cursor:grab;
     border-radius:12px;
@@ -629,16 +662,16 @@
     width:46px;
     height:46px;
     border-radius:14px;
-    background:var(--panel);
-    border:1px solid var(--border);
+    background:#6b7280;
+    border:none;
     display:flex;
     align-items:center;
     justify-content:center;
     font-size:16px;
     font-weight:600;
-    color:var(--text-secondary);
+    color:#ffffff;
     box-shadow:var(--shadow);
-    transition:transform .15s, box-shadow .15s, background .15s, color .15s;
+    transition:transform .15s, box-shadow .15s, opacity .15s;
   }
   a.pill .pill-label{
     font-size:11px;
@@ -651,24 +684,16 @@
   a.pill:hover .pill-icon{
     transform:translateY(-2px) scale(1.05);
     box-shadow:var(--shadow-hover);
-    background:#1b4d2e;
-    color:#ffffff;
-    border-color:#1b4d2e;
+    opacity:0.85;
   }
   a.pill:active .pill-icon{transform:translateY(0) scale(1);}
 
   html[data-theme="dark"] a.pill .pill-icon{
-    background:var(--panel);
-    border:1px solid rgba(43,219,122,0.4);
-    color:#4fd18a;
     box-shadow:none;
-    transition:transform .15s, color .4s ease-in-out, border-color .4s ease-in-out, box-shadow .4s ease-in-out;
+    transition:transform .15s, box-shadow .4s ease-in-out;
   }
   html[data-theme="dark"] a.pill:hover .pill-icon{
-    color:#ff8fc9;
-    border-color:#ff2d95;
-    background:var(--panel);
-    box-shadow:0 0 8px rgba(255,45,149,0.55), 0 0 22px rgba(255,45,149,0.35);
+    box-shadow:0 0 8px rgba(255,255,255,0.2), 0 0 16px rgba(255,255,255,0.1);
   }
 
   .empty{
@@ -1061,8 +1086,24 @@ function render(filter){
       pill.href = l.url;
       pill.target = '_blank';
       pill.rel = 'noopener noreferrer';
+const PILL_COLORS = [
+  '#1976d2','#7c4dff','#00897b','#d97757','#43a047',
+  '#8e24aa','#e65100','#00838f','#c62828','#4527a0',
+  '#2e7d32','#ad1457','#00695c','#ef6c00','#283593',
+  '#6a1b9a','#1565c0','#558b2f','#4e342e','#37474f'
+];
+
+function pillColor(title){
+  let hash = 0;
+  for(let i = 0; i < title.length; i++){
+    hash = title.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return PILL_COLORS[Math.abs(hash) % PILL_COLORS.length];
+}
+
       const initial = l.title.trim().charAt(0).toUpperCase();
-      pill.innerHTML = `<span class="pill-icon">${initial}</span><span class="pill-label">${l.title}</span>`;
+      const color = pillColor(l.title);
+      pill.innerHTML = `<span class="pill-icon" style="background:${color}">${initial}</span><span class="pill-label">${l.title}</span>`;
       pills.appendChild(pill);
     });
 
@@ -1441,7 +1482,12 @@ async function loadLinksFromFirebase(){
   try{
     await seedLinksIfEmpty();
     const data = await fbGet('links');
-    if(!data){ linksData = []; render(currentQuery); loadRoadmap(); return; }
+    if(!data || Object.keys(data).length === 0){
+      console.warn('[links] Firebase пуст, использую встроенные');
+      useBuiltInLinks();
+      loadRoadmap();
+      return;
+    }
 
     const items = Object.values(data);
     const map = new Map();
@@ -1458,12 +1504,27 @@ async function loadLinksFromFirebase(){
     console.log('[links] из Firebase загружено категорий:', linksData.length);
     applySavedOrder();
     render(currentQuery);
+    updateSyncBar('done');
     loadOrderFromFirebase();
   }catch(e){
-    console.error('[links] ошибка загрузки из Firebase:', e);
+    console.error('[links] ошибка загрузки из Firebase, использую встроенные:', e);
+    useBuiltInLinks();
   }
   loadRoadmap();
 }
+
+function useBuiltInLinks(){
+  const map = new Map();
+  INITIAL_LINKS.forEach(l => {
+    if(!map.has(l.c)) map.set(l.c, []);
+    map.get(l.c).push({ title: l.t, url: l.u });
+  });
+  linksData = Array.from(map.entries()).map(([name, links]) => ({ name, links }));
+  applySavedOrder();
+  render(currentQuery);
+  updateSyncBar('done');
+}
+
 loadLinksFromFirebase();
 
 // Применяем fallback для мероприятий сразу — если таблица потом загрузится,
@@ -1694,9 +1755,9 @@ async function deleteAdminLink(id){
       ctx.beginPath();
       ctx.arc(x, y, s.r, 0, Math.PI * 2);
       if(dark){
-        ctx.fillStyle = `rgba(255,255,255,${twinkle * 0.6})`;
+        ctx.fillStyle = `rgba(255,255,255,${twinkle * 0.7})`;
       } else {
-        ctx.fillStyle = `rgba(120,130,155,${twinkle * 0.18})`;
+        ctx.fillStyle = `rgba(100,80,160,${twinkle * 0.25})`;
       }
       ctx.fill();
     });
@@ -1714,7 +1775,7 @@ async function deleteAdminLink(id){
       if(dark){
         ctx.fillStyle = `rgba(180,200,255,${p.alpha * 1.5})`;
       } else {
-        ctx.fillStyle = `rgba(100,120,170,${p.alpha * 0.35})`;
+        ctx.fillStyle = `rgba(130,90,200,${p.alpha * 0.4})`;
       }
       ctx.fill();
     });
