@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('dashThemeDefault') || 'construct');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ссылки</title>
@@ -27,19 +28,30 @@
     --shadow:none;
     --shadow-hover:none;
   }
+  html[data-theme="construct"]{
+    --bg:#06111e;
+    --panel:rgba(10,22,40,0.75);
+    --text:#c8dae8;
+    --text-secondary:#6889a8;
+    --text-tertiary:#3a5570;
+    --border:rgba(80,160,200,0.12);
+    --shadow:none;
+    --shadow-hover:none;
+  }
   *{box-sizing:border-box;}
   html{
-    background:linear-gradient(135deg, #e8dff5, #fce4ec, #e0f7fa, #f3e5f5, #e8f5e9, #fff3e0);
-    background-size:600% 600%;
-    animation:auroraShift 25s ease-in-out infinite;
+    background:linear-gradient(135deg, #d4edda, #e8f5e9, #fff9c4, #fffde7, #dcedc8, #e0f7fa, #b2ebf2, #c8e6c9);
+    background-size:400% 400%;
+    animation:auroraShift 20s ease-in-out infinite;
     min-height:100vh;
   }
   @keyframes auroraShift{
-    0%{background-position:0% 50%;}
-    25%{background-position:50% 0%;}
-    50%{background-position:100% 50%;}
-    75%{background-position:50% 100%;}
-    100%{background-position:0% 50%;}
+    0%  {background-position:0% 0%;}
+    20% {background-position:100% 0%;}
+    40% {background-position:100% 100%;}
+    60% {background-position:0% 100%;}
+    80% {background-position:50% 0%;}
+    100%{background-position:0% 0%;}
   }
   html[data-theme="dark"]{
     background:linear-gradient(135deg, #060d1f, #0a1628, #0d1a35, #081230, #0b1525, #0f1e3a);
@@ -52,6 +64,18 @@
     50%{background-position:100% 50%;}
     75%{background-position:50% 100%;}
     100%{background-position:0% 50%;}
+  }
+  html[data-theme="construct"]{
+    background:linear-gradient(135deg, #04101d, #082035, #0a2840, #061828, #0d2a3f, #051520, #0b2538, #072030);
+    background-size:500% 500%;
+    animation:auroraShiftConstruct 30s ease-in-out infinite;
+  }
+  @keyframes auroraShiftConstruct{
+    0%  {background-position:0% 0%;}
+    25% {background-position:80% 20%;}
+    50% {background-position:100% 80%;}
+    75% {background-position:20% 100%;}
+    100%{background-position:0% 0%;}
   }
   #cosmosCanvas{
     position:fixed;
@@ -67,251 +91,135 @@
     margin:0 auto;
     padding:64px 24px 100px;
   }
-  .admin-overlay{z-index:200;}
-  body{
-    margin:0;
-    background:transparent;
-    color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
-    -webkit-font-smoothing:antialiased;
-    transition:color .3s ease;
-  }
-  .sync-bar{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    font-size:12px;
-    color:var(--text-tertiary);
-    margin-bottom:24px;
-  }
-  .sync-dot{
-    width:7px;
-    height:7px;
-    border-radius:50%;
-    background:#34c759;
-    flex-shrink:0;
-  }
-  .sync-dot.syncing{
-    background:#d9b357;
-    animation:sync-pulse 1s ease-in-out infinite;
-  }
-  .sync-dot.error{
-    background:#ff3b30;
-  }
-  @keyframes sync-pulse{
-    0%,100%{opacity:1;}
-    50%{opacity:.35;}
-  }
-  .sync-refresh{
-    border:none;
-    background:transparent;
-    color:var(--text-tertiary);
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    padding:3px;
-    border-radius:5px;
-    transition:color .15s, background .15s, transform .4s;
-  }
-  .sync-refresh:hover{
-    color:var(--text);
-    background:rgba(118,118,128,0.08);
-  }
-  .sync-refresh.spinning svg{
-    animation:sync-spin .7s linear infinite;
-  }
-  @keyframes sync-spin{
-    from{transform:rotate(0deg);}
-    to{transform:rotate(360deg);}
-  }
-
-  .top-bar{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:16px;
-    margin-bottom:24px;
-  }
-  .settings-wrap{
-    position:relative;
-  }
-  .settings-menu{
-    position:absolute;
-    top:calc(100% + 8px);
-    right:0;
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:12px;
-    box-shadow:0 8px 24px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
-    padding:6px;
-    min-width:240px;
-    max-height:70vh;
-    overflow-y:auto;
-    opacity:0;
-    transform:translateY(-4px);
-    pointer-events:none;
-    transition:opacity .15s ease, transform .15s ease;
-    z-index:100;
-  }
-  .settings-menu.open{
-    opacity:1;
-    transform:translateY(0);
-    pointer-events:auto;
-  }
-  .settings-menu a{
-    display:block;
-    padding:8px 12px;
-    color:var(--text);
-    text-decoration:none;
-    border-radius:8px;
-    font-size:13px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    transition:background .12s;
-  }
-  .settings-menu a:hover{
-    background:rgba(118,118,128,0.08);
-  }
-  .settings-menu button.menu-item{
-    display:block;
-    width:100%;
-    text-align:left;
-    padding:8px 12px;
-    color:var(--text);
-    background:none;
-    border:none;
-    border-radius:8px;
-    font-size:13px;
-    font-family:inherit;
-    cursor:pointer;
-    transition:background .12s;
-  }
-  .settings-menu button.menu-item:hover{
-    background:rgba(118,118,128,0.08);
-  }
-
-  .admin-overlay{
-    display:none;
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,0.4);
-    z-index:200;
-    justify-content:center;
-    align-items:center;
-  }
-  .admin-overlay.open{
-    display:flex;
-  }
-  .admin-panel{
-    background:var(--panel);
-    border-radius:16px;
-    padding:28px 24px;
-    width:90%;
-    max-width:480px;
-    max-height:85vh;
-    overflow-y:auto;
-    box-shadow:0 16px 48px rgba(0,0,0,0.15);
-    position:relative;
-  }
-  .admin-panel h2{
-    font-size:18px;
-    font-weight:600;
-    margin:0 0 20px;
-  }
-  .admin-close{
-    position:absolute;
-    top:16px;
-    right:16px;
-    background:none;
-    border:none;
-    color:var(--text-secondary);
-    cursor:pointer;
-    font-size:20px;
-    line-height:1;
-    padding:4px;
-  }
-  .admin-close:hover{color:var(--text);}
-  .admin-form{
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-    margin-bottom:20px;
-  }
-  .admin-form input, .admin-form select{
-    padding:10px 12px;
-    border:1px solid var(--border);
-    border-radius:10px;
-    font-size:14px;
-    font-family:inherit;
+  .admin-page{
+    position:fixed;inset:0;z-index:200;
     background:var(--bg);
-    color:var(--text);
-    outline:none;
+    overflow-y:auto;
+    display:none;
+    animation:adminFadeIn .3s ease;
   }
-  .admin-form input:focus, .admin-form select:focus{
-    border-color:var(--accent);
+  .admin-page.open{display:block;}
+  @keyframes adminFadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .admin-header{
+    max-width:900px;margin:0 auto;padding:24px 20px 0;
+    display:flex;align-items:center;justify-content:space-between;
   }
-  .admin-form input::placeholder{color:var(--text-tertiary);}
+  .admin-header h2{font-size:22px;font-weight:600;color:var(--text);margin:0;}
+  .admin-back{
+    background:none;border:1px solid var(--border);border-radius:8px;
+    padding:6px 14px;color:var(--text-secondary);cursor:pointer;font-size:13px;
+    transition:all .2s;
+  }
+  .admin-back:hover{color:var(--text);border-color:var(--text-secondary);}
+  .admin-tabs{
+    max-width:900px;margin:16px auto 0;padding:0 20px;
+    display:flex;gap:4px;border-bottom:1px solid var(--border);
+  }
+  .admin-tab{
+    padding:8px 16px;font-size:13px;cursor:pointer;
+    color:var(--text-secondary);background:none;border:none;
+    border-bottom:2px solid transparent;transition:all .2s;
+  }
+  .admin-tab:hover{color:var(--text);}
+  .admin-tab.active{color:var(--text);border-bottom-color:#3478f6;font-weight:500;}
+  .admin-body{max-width:900px;margin:0 auto;padding:20px;}
+  .admin-section{display:none;}
+  .admin-section.active{display:block;}
+  .admin-card{
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:18px;margin-bottom:16px;
+  }
+  .admin-card h3{font-size:15px;font-weight:600;color:var(--text);margin:0 0 12px;}
+  .admin-row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .admin-input{
+    flex:1;min-width:120px;padding:8px 12px;border-radius:8px;
+    border:1px solid var(--border);background:var(--panel);
+    color:var(--text);font-size:13px;outline:none;
+    transition:border-color .2s;
+  }
+  .admin-input:focus{border-color:#3478f6;}
+  .admin-input::placeholder{color:var(--text-tertiary);}
+  .admin-select{
+    padding:8px 12px;border-radius:8px;border:1px solid var(--border);
+    background:var(--panel);color:var(--text);font-size:13px;outline:none;
+    cursor:pointer;min-width:140px;
+  }
   .admin-btn{
-    padding:10px 16px;
-    border:none;
-    border-radius:10px;
-    font-size:14px;
-    font-weight:500;
-    font-family:inherit;
-    cursor:pointer;
-    background:var(--accent);
-    color:#fff;
-    transition:opacity .15s;
+    padding:8px 18px;border-radius:8px;border:none;
+    background:#3478f6;color:#fff;font-size:13px;font-weight:500;
+    cursor:pointer;transition:opacity .2s;white-space:nowrap;
   }
   .admin-btn:hover{opacity:0.85;}
   .admin-btn.danger{background:#ff3b30;}
-  .admin-list{
-    border-top:1px solid var(--border);
-    padding-top:16px;
+  .admin-btn.success{background:#34c759;}
+  .admin-btn.secondary{background:var(--border);color:var(--text);}
+  .admin-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .admin-table th{
+    text-align:left;padding:8px 10px;color:var(--text-secondary);
+    font-weight:500;border-bottom:1px solid var(--border);font-size:12px;
   }
-  .admin-list h3{
-    font-size:14px;
-    font-weight:600;
-    color:var(--text-secondary);
-    margin:0 0 10px;
+  .admin-table td{
+    padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text);
+    vertical-align:middle;
   }
-  .admin-link-item{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
-    padding:8px 0;
-    border-bottom:1px solid var(--border);
-    font-size:13px;
+  .admin-table tr:last-child td{border-bottom:none;}
+  .admin-table .actions{display:flex;gap:6px;}
+  .admin-table .btn-sm{
+    padding:4px 10px;border-radius:6px;border:none;font-size:11px;
+    cursor:pointer;transition:opacity .2s;
   }
-  .admin-link-item:last-child{border-bottom:none;}
-  .admin-link-info{
-    flex:1;
-    min-width:0;
+  .btn-edit{background:rgba(52,120,246,0.15);color:#3478f6;}
+  .btn-del{background:rgba(255,59,48,0.12);color:#ff3b30;}
+  .btn-sm:hover{opacity:0.7;}
+  .admin-empty{color:var(--text-tertiary);font-size:13px;padding:12px 0;text-align:center;}
+  .admin-stat{
+    display:inline-flex;align-items:center;gap:6px;
   }
-  .admin-link-title{
-    color:var(--text);
-    font-weight:500;
+  .note-card{
+    border-left:3px solid #3478f6;background:rgba(52,120,246,0.04);
+    border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:10px;
+    position:relative;
   }
-  .admin-link-cat{
-    color:var(--text-tertiary);
-    font-size:11px;
+  .note-card .note-title{font-weight:600;font-size:14px;color:var(--text);margin:0 0 4px;}
+  .note-card .note-body{font-size:13px;color:var(--text-secondary);margin:0;line-height:1.5;white-space:pre-wrap;}
+  .note-card .note-date{font-size:11px;color:var(--text-tertiary);margin-top:6px;}
+  .note-card .note-actions{position:absolute;top:10px;right:10px;display:flex;gap:4px;}
+  .note-pin{
+    padding:3px 8px;border-radius:5px;border:none;font-size:11px;
+    cursor:pointer;background:rgba(52,120,246,0.1);color:#3478f6;
   }
-  .admin-link-del{
-    background:none;
-    border:none;
-    color:var(--text-tertiary);
-    cursor:pointer;
-    font-size:16px;
-    padding:4px 6px;
-    border-radius:6px;
-    transition:color .12s, background .12s;
+  .note-pin.pinned{background:#3478f6;color:#fff;}
+  /* Виджет заметок на дашборде */
+  .dash-notes{
+    max-width:1040px;margin:24px auto 0;padding:0 10px;
   }
-  .admin-link-del:hover{
-    color:#ff3b30;
-    background:rgba(255,59,48,0.08);
+  .dash-notes h3{
+    font-size:13px;font-weight:600;color:var(--text-secondary);
+    text-transform:uppercase;letter-spacing:0.06em;margin:0 0 10px;
   }
+  .dash-notes-grid{
+    display:grid;grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));gap:10px;
+  }
+  .dash-note{
+    border-left:3px solid #3478f6;background:var(--panel);
+    border-radius:0 10px 10px 0;padding:10px 14px;
+    border:1px solid var(--border);border-left:3px solid #3478f6;
+    transition:transform .15s;
+  }
+  .dash-note:hover{transform:translateY(-1px);}
+  .dash-note .dn-title{font-weight:600;font-size:13px;color:var(--text);margin:0 0 3px;}
+  .dash-note .dn-body{font-size:12px;color:var(--text-secondary);margin:0;line-height:1.4;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;
+  }
+    padding:4px 12px;border-radius:6px;background:rgba(52,120,246,0.1);
+    color:#3478f6;font-size:12px;font-weight:500;
+  }
+  .event-badge{
+    display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;
+  }
+  .event-future{background:rgba(52,199,89,0.15);color:#34c759;}
+  .event-past{background:rgba(142,142,147,0.15);color:#8e8e93;}
+  .event-urgent{background:rgba(255,59,48,0.15);color:#ff3b30;}
 
   .top-bar-actions{
     display:flex;
@@ -346,6 +254,26 @@
     color:var(--text-secondary);
     line-height:1.3;
   }
+  .sync-bar{
+    display:flex;align-items:center;gap:8px;
+    font-size:12px;color:var(--text-secondary);
+    margin-top:6px;
+  }
+  .sync-dot{
+    width:7px;height:7px;border-radius:50%;
+    background:#34c759;flex-shrink:0;
+  }
+  .sync-dot.syncing{background:#ff9500;animation:pulse 1s infinite;}
+  .sync-dot.error{background:#ff3b30;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .sync-refresh{
+    background:none;border:1px solid var(--border);border-radius:6px;
+    padding:3px 5px;cursor:pointer;color:var(--text-secondary);
+    display:flex;align-items:center;transition:all .2s;
+  }
+  .sync-refresh:hover{color:var(--text);border-color:var(--text-secondary);}
+  .sync-refresh.spinning svg{animation:spin .6s linear;}
+  @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
   .date-display .day{
     font-weight:600;
     color:var(--text);
@@ -489,21 +417,57 @@
     display:flex;
     transition:transform .45s cubic-bezier(.4,0,.2,1), opacity .45s ease;
   }
+  /* По умолчанию (construct): показываем лампочку → переход в светлую */
   .icon-moon{
-    opacity:1;
-    transform:rotate(0deg) scale(1);
-  }
-  .icon-bulb{
     opacity:0;
     transform:rotate(180deg) scale(0);
   }
+  .icon-bulb{
+    opacity:1;
+    transform:rotate(0deg) scale(1);
+  }
+  .icon-construct{
+    opacity:0;
+    transform:rotate(180deg) scale(0);
+  }
+  /* Светлая → показываем луну (переход в тёмную) */
+  html[data-theme="light"] .icon-moon{
+    opacity:1;
+    transform:rotate(0deg) scale(1);
+  }
+  html[data-theme="light"] .icon-bulb{
+    opacity:0;
+    transform:rotate(-180deg) scale(0);
+  }
+  html[data-theme="light"] .icon-construct{
+    opacity:0;
+    transform:rotate(180deg) scale(0);
+  }
+  /* Тёмная → показываем construct-иконку (переход в construct) */
   html[data-theme="dark"] .icon-moon{
     opacity:0;
     transform:rotate(-180deg) scale(0);
   }
   html[data-theme="dark"] .icon-bulb{
+    opacity:0;
+    transform:rotate(180deg) scale(0);
+  }
+  html[data-theme="dark"] .icon-construct{
     opacity:1;
     transform:rotate(0deg) scale(1);
+  }
+  /* Construct → показываем лампочку (переход в светлую) */
+  html[data-theme="construct"] .icon-moon{
+    opacity:0;
+    transform:rotate(-180deg) scale(0);
+  }
+  html[data-theme="construct"] .icon-bulb{
+    opacity:1;
+    transform:rotate(0deg) scale(1);
+  }
+  html[data-theme="construct"] .icon-construct{
+    opacity:0;
+    transform:rotate(-180deg) scale(0);
   }
   header{
     text-align:center;
@@ -695,6 +659,13 @@
   html[data-theme="dark"] a.pill:hover .pill-icon{
     box-shadow:0 0 8px rgba(255,255,255,0.2), 0 0 16px rgba(255,255,255,0.1);
   }
+  html[data-theme="construct"] a.pill .pill-icon{
+    box-shadow:none;
+    transition:transform .15s, box-shadow .4s ease-in-out;
+  }
+  html[data-theme="construct"] a.pill:hover .pill-icon{
+    box-shadow:0 0 8px rgba(80,180,220,0.3), 0 0 18px rgba(80,180,220,0.15);
+  }
 
   .empty{
     color:var(--text-tertiary);
@@ -813,6 +784,17 @@
             <line x1="7.4" y1="5.4" x2="5.6" y2="3.6"></line>
           </svg>
         </span>
+        <span class="icon icon-construct">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.8"></circle>
+            <line x1="12" y1="12" x2="4" y2="4"></line><circle cx="3.5" cy="3.5" r="1.2"></circle>
+            <line x1="12" y1="12" x2="21" y2="5"></line><circle cx="21.3" cy="4.7" r="1.2"></circle>
+            <line x1="12" y1="12" x2="20" y2="18"></line><circle cx="20.3" cy="18.3" r="1.2"></circle>
+            <line x1="12" y1="12" x2="3" y2="17"></line><circle cx="2.7" cy="17.3" r="1.2"></circle>
+            <line x1="12" y1="12" x2="12" y2="2"></line><circle cx="12" cy="1.5" r="1"></circle>
+            <line x1="12" y1="12" x2="22" y2="12"></line><circle cx="22.5" cy="12" r="1"></circle>
+          </svg>
+        </span>
       </button>
     </div>
   </div>
@@ -885,20 +867,177 @@
   <p class="empty" id="emptyState">Ничего не найдено</p>
 </div>
 
-<div class="admin-overlay" id="adminOverlay">
-  <div class="admin-panel">
-    <button class="admin-close" id="adminClose">&times;</button>
-    <h2>Админка</h2>
-    <div class="admin-form">
-      <input type="text" id="adminCat" placeholder="Категория (напр. Аналитика)">
-      <input type="text" id="adminTitle" placeholder="Название кнопки">
-      <input type="url" id="adminUrl" placeholder="https://...">
-      <button class="admin-btn" id="adminAdd">Добавить ссылку</button>
+<!-- Виджет закреплённых заметок на дашборде -->
+<div class="dash-notes" id="dashNotes" style="display:none;">
+  <h3>📌 Заметки</h3>
+  <div class="dash-notes-grid" id="dashNotesGrid"></div>
+</div>
+
+<div class="admin-page" id="adminPage">
+  <div class="admin-header">
+    <h2>Панель управления</h2>
+    <button class="admin-back" id="adminBack">← Вернуться на дашборд</button>
+  </div>
+  <div class="admin-tabs" id="adminTabs">
+    <button class="admin-tab active" data-tab="links">Ссылки</button>
+    <button class="admin-tab" data-tab="events">Мероприятия</button>
+    <button class="admin-tab" data-tab="apps">Приложения</button>
+    <button class="admin-tab" data-tab="categories">Категории</button>
+    <button class="admin-tab" data-tab="notes">Заметки</button>
+    <button class="admin-tab" data-tab="settings">Настройки</button>
+  </div>
+  <div class="admin-body">
+
+    <!-- ===== ССЫЛКИ ===== -->
+    <div class="admin-section active" data-section="links">
+      <div class="admin-card">
+        <h3>Добавить ссылку</h3>
+        <div class="admin-row">
+          <select class="admin-select" id="adLinkCat"><option value="">Выбери категорию…</option></select>
+          <input class="admin-input" id="adLinkTitle" placeholder="Название кнопки">
+          <input class="admin-input" id="adLinkUrl" placeholder="https://...">
+          <button class="admin-btn" id="adLinkAdd">Добавить</button>
+        </div>
+        <div class="admin-row">
+          <input class="admin-input" id="adLinkNewCat" placeholder="Или создай новую категорию…" style="max-width:260px;">
+        </div>
+      </div>
+      <div class="admin-card">
+        <h3>Все ссылки <span class="admin-stat" id="adLinkCount">0</span></h3>
+        <input class="admin-input" id="adLinkSearch" placeholder="Поиск по ссылкам…" style="margin-bottom:12px;width:100%;">
+        <div style="overflow-x:auto;">
+          <table class="admin-table"><thead><tr>
+            <th>Название</th><th>Категория</th><th>URL</th><th style="width:100px;">Действия</th>
+          </tr></thead><tbody id="adLinkTable"></tbody></table>
+        </div>
+      </div>
     </div>
-    <div class="admin-list">
-      <h3>Добавленные через админку</h3>
-      <div id="adminLinksList"></div>
+
+    <!-- ===== МЕРОПРИЯТИЯ ===== -->
+    <div class="admin-section" data-section="events">
+      <div class="admin-card">
+        <h3>Добавить мероприятие</h3>
+        <div class="admin-row">
+          <input class="admin-input" id="adEvtName" placeholder="Название мероприятия">
+          <input class="admin-input" id="adEvtDate" type="date">
+          <button class="admin-btn" id="adEvtAdd">Добавить</button>
+        </div>
+      </div>
+      <div class="admin-card">
+        <h3>Мероприятия и бегущая строка</h3>
+        <p style="font-size:12px;color:var(--text-tertiary);margin:0 0 12px;">
+          Мероприятия из Google Таблицы загружаются автоматически. Здесь можно добавить дополнительные вручную.
+        </p>
+        <table class="admin-table"><thead><tr>
+          <th>Название</th><th>Дата</th><th>Статус</th><th style="width:100px;">Действия</th>
+        </tr></thead><tbody id="adEvtTable"></tbody></table>
+      </div>
+      <div class="admin-card">
+        <h3>Ссылка на Google Таблицу экшн-плана</h3>
+        <div class="admin-row">
+          <input class="admin-input" id="adEvtSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..." style="flex:3;">
+          <button class="admin-btn secondary" id="adEvtSheetSave">Сохранить</button>
+        </div>
+      </div>
     </div>
+
+    <!-- ===== ПРИЛОЖЕНИЯ ===== -->
+    <div class="admin-section" data-section="apps">
+      <div class="admin-card">
+        <h3>Быстрые приложения (верхний ряд)</h3>
+        <p style="font-size:12px;color:var(--text-tertiary);margin:0 0 12px;">
+          Иконки-ярлыки в верхнем ряду дашборда. Перетаскивай для изменения порядка.
+        </p>
+        <div id="adAppsList" style="margin-bottom:14px;"></div>
+        <h3 style="margin-top:16px;">Добавить приложение</h3>
+        <div class="admin-row">
+          <input class="admin-input" id="adAppName" placeholder="Название">
+          <input class="admin-input" id="adAppUrl" placeholder="https://...">
+          <input class="admin-input" id="adAppLetter" placeholder="Буква" style="max-width:60px;">
+          <input class="admin-input" id="adAppColor" type="color" value="#3478f6" style="max-width:50px;padding:4px;">
+          <button class="admin-btn" id="adAppAdd">Добавить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== КАТЕГОРИИ ===== -->
+    <div class="admin-section" data-section="categories">
+      <div class="admin-card">
+        <h3>Управление категориями</h3>
+        <p style="font-size:12px;color:var(--text-tertiary);margin:0 0 12px;">
+          Переименовывай, удаляй и меняй порядок категорий. Порядок также можно менять drag&drop на дашборде.
+        </p>
+        <table class="admin-table"><thead><tr>
+          <th>Категория</th><th>Ссылок</th><th style="width:140px;">Действия</th>
+        </tr></thead><tbody id="adCatTable"></tbody></table>
+      </div>
+    </div>
+
+    <!-- ===== ЗАМЕТКИ ===== -->
+    <div class="admin-section" data-section="notes">
+      <div class="admin-card">
+        <h3>Быстрая заметка</h3>
+        <div class="admin-row">
+          <input class="admin-input" id="adNoteTitle" placeholder="Заголовок (необязательно)" style="max-width:260px;">
+          <select class="admin-select" id="adNoteColor" style="min-width:100px;">
+            <option value="#3478f6">🔵 Обычная</option>
+            <option value="#34c759">🟢 Важная</option>
+            <option value="#ff9500">🟠 Срочная</option>
+            <option value="#ff3b30">🔴 Критичная</option>
+          </select>
+        </div>
+        <textarea class="admin-input" id="adNoteText" placeholder="Текст заметки…" rows="3" style="resize:vertical;width:100%;margin-bottom:10px;"></textarea>
+        <button class="admin-btn" id="adNoteAdd">Добавить заметку</button>
+      </div>
+      <div class="admin-card">
+        <h3>Все заметки <span class="admin-stat" id="adNoteCount">0</span></h3>
+        <div id="adNotesList"></div>
+      </div>
+    </div>
+
+    <!-- ===== НАСТРОЙКИ ===== -->
+    <div class="admin-section" data-section="settings">
+      <div class="admin-card">
+        <h3>Тема по умолчанию</h3>
+        <div class="admin-row">
+          <select class="admin-select" id="adThemeDefault">
+            <option value="construct">Construct</option>
+            <option value="light">Светлая</option>
+            <option value="dark">Тёмная</option>
+          </select>
+          <button class="admin-btn secondary" id="adThemeSave">Сохранить</button>
+        </div>
+      </div>
+      <div class="admin-card">
+        <h3>Firebase</h3>
+        <div class="admin-row">
+          <input class="admin-input" id="adFirebaseUrl" placeholder="https://xxx.firebaseio.com" style="flex:2;">
+          <button class="admin-btn secondary" id="adFirebaseSave">Сохранить</button>
+        </div>
+        <p style="font-size:11px;color:var(--text-tertiary);margin:8px 0 0;">Текущий: <code id="adFirebaseCurrent" style="font-size:11px;"></code></p>
+      </div>
+      <div class="admin-card">
+        <h3>Данные</h3>
+        <div class="admin-row">
+          <button class="admin-btn secondary" id="adDataExport">Экспорт JSON</button>
+          <button class="admin-btn secondary" id="adDataImport">Импорт JSON</button>
+          <button class="admin-btn danger" id="adDataReset">Сбросить всё</button>
+        </div>
+        <input type="file" id="adDataFile" accept=".json" style="display:none;">
+      </div>
+      <div class="admin-card">
+        <h3>О дашборде</h3>
+        <p style="font-size:13px;color:var(--text-secondary);margin:0;line-height:1.6;">
+          Рабочий дашборд руководителя маркетинга<br>
+          Темы: Светлая · Тёмная · Construct<br>
+          Данные: Firebase Realtime Database<br>
+          Мероприятия: Google Таблица (авто-загрузка) + ручные<br>
+          Заметки: Firebase (с закреплением на дашборде)<br>
+          Хостинг: GitHub Pages
+        </p>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1556,9 +1695,18 @@ function useBuiltInLinks(){
 
 loadLinksFromFirebase();
 
+// Загружаем заметки для виджета на дашборде
+try{ loadNotes(); }catch(e){}
+
 // Применяем fallback для мероприятий сразу — если таблица потом загрузится,
 // данные перезапишутся, а если нет — хотя бы этот список будет виден.
 allEvents = FALLBACK_EVENTS.slice().sort((a, b) => a.date - b.date);
+// Добавляем кастомные мероприятия из localStorage
+try{
+  const _customEvts = JSON.parse(localStorage.getItem('customEvents') || '[]');
+  _customEvts.forEach(e => allEvents.push({ name: e.name, date: new Date(e.date), custom: true, id: e.id }));
+  allEvents.sort((a,b) => a.date - b.date);
+}catch(e){}
 const _today = new Date();
 _today.setHours(0,0,0,0);
 const _upcoming = allEvents.filter(m => m.date >= _today);
@@ -1591,8 +1739,9 @@ syncRefreshBtn.addEventListener('click', () => {
 const themeToggle = document.getElementById('themeToggle');
 themeToggle.addEventListener('click', () => {
   const root = document.documentElement;
-  const isDark = root.getAttribute('data-theme') === 'dark';
-  root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  const cur = root.getAttribute('data-theme') || 'light';
+  const next = cur === 'construct' ? 'light' : cur === 'light' ? 'dark' : 'construct';
+  root.setAttribute('data-theme', next);
 });
 
 const reorderToggle = document.getElementById('reorderToggle');
@@ -1648,89 +1797,506 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// ===== АДМИНКА =====
+// ===== АДМИНКА (полноэкранная) =====
 let adminLinks = [];
 
 function openAdmin(){
-  document.getElementById('adminOverlay').classList.add('open');
-  loadAdminLinks();
+  document.getElementById('adminPage').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  loadAdminData();
 }
 function closeAdmin(){
-  document.getElementById('adminOverlay').classList.remove('open');
+  document.getElementById('adminPage').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
-document.getElementById('adminClose').addEventListener('click', closeAdmin);
-document.getElementById('adminOverlay').addEventListener('click', (e) => {
-  if(e.target === document.getElementById('adminOverlay')) closeAdmin();
+document.getElementById('adminBack').addEventListener('click', closeAdmin);
+
+// Табы
+document.getElementById('adminTabs').addEventListener('click', (e) => {
+  const tab = e.target.closest('.admin-tab');
+  if(!tab) return;
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  tab.classList.add('active');
+  document.querySelector(`[data-section="${tab.dataset.tab}"]`).classList.add('active');
 });
 
-async function loadAdminLinks(){
+// ===== Загрузка всех данных =====
+async function loadAdminData(){
+  // Ссылки
   try{
     const data = await fbGet('links');
     adminLinks = data ? Object.entries(data).map(([id, v]) => ({id, ...v})) : [];
-  }catch(e){
-    adminLinks = [];
-  }
-  renderAdminList();
+  }catch(e){ adminLinks = []; }
+  renderAdminLinks();
+  populateAdminCatDropdown();
+  renderAdminCategories();
+  renderAdminEvents();
+  renderAdminApps();
+  await loadNotes();
+  // Настройки
+  document.getElementById('adFirebaseCurrent').textContent = FIREBASE_URL;
+  document.getElementById('adFirebaseUrl').value = FIREBASE_URL;
+  const savedTheme = localStorage.getItem('dashThemeDefault') || 'construct';
+  document.getElementById('adThemeDefault').value = savedTheme;
 }
 
-function renderAdminList(){
-  const list = document.getElementById('adminLinksList');
-  list.innerHTML = '';
-  if(!adminLinks.length){
-    list.innerHTML = '<div style="color:var(--text-tertiary);font-size:12px;padding:8px 0;">Пока нет добавленных ссылок</div>';
+// ===== ССЫЛКИ =====
+function renderAdminLinks(){
+  const search = (document.getElementById('adLinkSearch')?.value || '').toLowerCase();
+  const filtered = search ? adminLinks.filter(l =>
+    l.title.toLowerCase().includes(search) || l.category.toLowerCase().includes(search) || l.url.toLowerCase().includes(search)
+  ) : adminLinks;
+
+  document.getElementById('adLinkCount').textContent = adminLinks.length + ' ссылок';
+  const tbody = document.getElementById('adLinkTable');
+  if(!filtered.length){
+    tbody.innerHTML = '<tr><td colspan="4" class="admin-empty">Нет ссылок</td></tr>';
     return;
   }
-  adminLinks.forEach(link => {
-    const item = document.createElement('div');
-    item.className = 'admin-link-item';
-    item.innerHTML = `
-      <div class="admin-link-info">
-        <div class="admin-link-title">${link.title}</div>
-        <div class="admin-link-cat">${link.category} · ${link.url}</div>
-      </div>
-      <button class="admin-link-del" data-id="${link.id}" title="Удалить">×</button>
-    `;
-    item.querySelector('.admin-link-del').addEventListener('click', () => deleteAdminLink(link.id));
-    list.appendChild(item);
-  });
+  tbody.innerHTML = filtered.map(l => `
+    <tr>
+      <td><strong>${esc(l.title)}</strong></td>
+      <td>${esc(l.category)}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        <a href="${esc(l.url)}" target="_blank" style="color:#3478f6;text-decoration:none;font-size:12px;">${esc(l.url)}</a>
+      </td>
+      <td class="actions">
+        <button class="btn-sm btn-edit" onclick="editLink('${l.id}')">Ред.</button>
+        <button class="btn-sm btn-del" onclick="deleteLink('${l.id}')">Удалить</button>
+      </td>
+    </tr>
+  `).join('');
 }
 
-document.getElementById('adminAdd').addEventListener('click', async () => {
-  const cat = document.getElementById('adminCat').value.trim();
-  const title = document.getElementById('adminTitle').value.trim();
-  const url = document.getElementById('adminUrl').value.trim();
-  if(!cat || !title || !url){ alert('Заполни все три поля'); return; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  const btn = document.getElementById('adminAdd');
-  btn.textContent = 'Сохраняю…';
-  btn.disabled = true;
+document.getElementById('adLinkSearch')?.addEventListener('input', renderAdminLinks);
 
+function populateAdminCatDropdown(){
+  const sel = document.getElementById('adLinkCat');
+  const cats = [...new Set(adminLinks.map(l => l.category))].sort();
+  sel.innerHTML = '<option value="">Выбери категорию…</option>' +
+    cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+}
+
+document.getElementById('adLinkAdd').addEventListener('click', async () => {
+  let cat = document.getElementById('adLinkCat').value ||
+            document.getElementById('adLinkNewCat').value.trim();
+  const title = document.getElementById('adLinkTitle').value.trim();
+  const url = document.getElementById('adLinkUrl').value.trim();
+  if(!cat || !title || !url){ alert('Заполни категорию, название и URL'); return; }
+
+  const btn = document.getElementById('adLinkAdd');
+  btn.textContent = 'Сохраняю…'; btn.disabled = true;
   try{
     const id = 'link_' + Date.now();
     await fbPut('links/' + id, { category: cat, title, url });
-    document.getElementById('adminCat').value = '';
-    document.getElementById('adminTitle').value = '';
-    document.getElementById('adminUrl').value = '';
-    await loadAdminLinks();
+    document.getElementById('adLinkTitle').value = '';
+    document.getElementById('adLinkUrl').value = '';
+    document.getElementById('adLinkNewCat').value = '';
+    await loadAdminData();
     await loadLinksFromFirebase();
-  }catch(e){
-    alert('Ошибка сохранения: ' + e.message);
-  }
-  btn.textContent = 'Добавить ссылку';
-  btn.disabled = false;
+  }catch(e){ alert('Ошибка: ' + e.message); }
+  btn.textContent = 'Добавить'; btn.disabled = false;
 });
 
-async function deleteAdminLink(id){
+async function editLink(id){
+  const link = adminLinks.find(l => l.id === id);
+  if(!link) return;
+  const row = document.querySelector(`button[onclick="editLink('${id}')"]`)?.closest('tr');
+  if(!row) return;
+  const cells = row.querySelectorAll('td');
+  const oldHTML = row.innerHTML;
+  // Inline edit form
+  row.innerHTML = `
+    <td><input class="admin-input" id="editT_${id}" value="${esc(link.title)}" style="margin:0;min-width:80px;"></td>
+    <td><input class="admin-input" id="editC_${id}" value="${esc(link.category)}" style="margin:0;min-width:80px;"></td>
+    <td><input class="admin-input" id="editU_${id}" value="${esc(link.url)}" style="margin:0;min-width:100px;font-size:12px;"></td>
+    <td class="actions">
+      <button class="btn-sm btn-edit" style="background:rgba(52,199,89,0.15);color:#34c759;" id="editSave_${id}">✓</button>
+      <button class="btn-sm btn-del" id="editCancel_${id}">✕</button>
+    </td>`;
+  document.getElementById('editSave_' + id).onclick = async () => {
+    const t = document.getElementById('editT_' + id).value.trim();
+    const c = document.getElementById('editC_' + id).value.trim();
+    const u = document.getElementById('editU_' + id).value.trim();
+    if(!t || !c || !u){ alert('Заполни все поля'); return; }
+    try{
+      await fbPut('links/' + id, { category: c, title: t, url: u });
+      await loadAdminData();
+      await loadLinksFromFirebase();
+    }catch(e){ alert('Ошибка: ' + e.message); }
+  };
+  document.getElementById('editCancel_' + id).onclick = () => { row.innerHTML = oldHTML; };
+  document.getElementById('editT_' + id).focus();
+}
+
+async function deleteLink(id){
   if(!confirm('Удалить эту ссылку?')) return;
   try{
     await fetch(`${FIREBASE_URL}/links/${id}.json`, { method: 'DELETE' });
-    await loadAdminLinks();
+    await loadAdminData();
     await loadLinksFromFirebase();
-  }catch(e){
-    alert('Ошибка удаления: ' + e.message);
+  }catch(e){ alert('Ошибка: ' + e.message); }
+}
+
+// ===== МЕРОПРИЯТИЯ =====
+function renderAdminEvents(){
+  const tbody = document.getElementById('adEvtTable');
+  const now = new Date();
+  // Объединяем: загруженные из roadmap + кастомные из Firebase
+  let evts = [...allEvents]; // allEvents уже содержит roadmap данные
+  // Добавляем кастомные
+  const custom = JSON.parse(localStorage.getItem('customEvents') || '[]');
+  custom.forEach(e => {
+    evts.push({ name: e.name, date: new Date(e.date), custom: true, id: e.id });
+  });
+  evts.sort((a,b) => a.date - b.date);
+
+  if(!evts.length){
+    tbody.innerHTML = '<tr><td colspan="4" class="admin-empty">Нет мероприятий</td></tr>';
+    return;
+  }
+  tbody.innerHTML = evts.map(e => {
+    const diff = Math.round((e.date - now) / 86400000);
+    let badge;
+    if(diff < 0) badge = '<span class="event-badge event-past">Прошло</span>';
+    else if(diff < 14) badge = '<span class="event-badge event-urgent">Скоро (' + diff + ' дн.)</span>';
+    else badge = '<span class="event-badge event-future">Через ' + diff + ' дн.</span>';
+    const dateStr = e.date.toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'});
+    const src = e.custom ? '' : '<span style="color:var(--text-tertiary);font-size:11px;">Из таблицы</span>';
+    const btns = e.custom
+      ? '<button class="btn-sm btn-edit" onclick="editCustomEvent(\'' + e.id + '\')">Ред.</button><button class="btn-sm btn-del" onclick="deleteCustomEvent(\'' + e.id + '\')">Удалить</button>'
+      : src;
+    return `<tr>
+      <td>${esc(e.name)}</td>
+      <td>${dateStr}</td>
+      <td>${badge}</td>
+      <td class="actions">${btns}</td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('adEvtAdd').addEventListener('click', async () => {
+  const name = document.getElementById('adEvtName').value.trim();
+  const dateStr = document.getElementById('adEvtDate').value;
+  if(!name || !dateStr){ alert('Заполни название и дату'); return; }
+  const id = 'evt_' + Date.now();
+  try{
+    await fbPut('events/' + id, { name, date: dateStr });
+  }catch(e){}
+  // Также сохраняем в localStorage как fallback
+  const custom = JSON.parse(localStorage.getItem('customEvents') || '[]');
+  custom.push({ id, name, date: dateStr });
+  localStorage.setItem('customEvents', JSON.stringify(custom));
+  allEvents.push({ name, date: new Date(dateStr), custom: true, id });
+  rebuildTicker();
+  document.getElementById('adEvtName').value = '';
+  document.getElementById('adEvtDate').value = '';
+  renderAdminEvents();
+});
+
+function editCustomEvent(id){
+  const custom = JSON.parse(localStorage.getItem('customEvents') || '[]');
+  const evt = custom.find(e => e.id === id);
+  if(!evt) return;
+  const row = document.querySelector(`button[onclick="editCustomEvent('${id}')"]`)?.closest('tr');
+  if(!row) return;
+  row.innerHTML = `
+    <td><input class="admin-input" id="evtEditN_${id}" value="${esc(evt.name)}" style="margin:0;"></td>
+    <td><input class="admin-input" id="evtEditD_${id}" type="date" value="${evt.date}" style="margin:0;"></td>
+    <td></td>
+    <td class="actions">
+      <button class="btn-sm btn-edit" style="background:rgba(52,199,89,0.15);color:#34c759;" id="evtSave_${id}">✓</button>
+      <button class="btn-sm btn-del" id="evtCancel_${id}">✕</button>
+    </td>`;
+  document.getElementById('evtSave_' + id).onclick = async () => {
+    const n = document.getElementById('evtEditN_' + id).value.trim();
+    const d = document.getElementById('evtEditD_' + id).value;
+    if(!n || !d){ alert('Заполни все поля'); return; }
+    const idx = custom.findIndex(e => e.id === id);
+    if(idx >= 0){ custom[idx] = { id, name: n, date: d }; }
+    localStorage.setItem('customEvents', JSON.stringify(custom));
+    try{ await fbPut('events/' + id, { name: n, date: d }); }catch(e){}
+    allEvents = allEvents.filter(e => e.id !== id);
+    allEvents.push({ name: n, date: new Date(d), custom: true, id });
+    rebuildTicker();
+    renderAdminEvents();
+  };
+  document.getElementById('evtCancel_' + id).onclick = () => renderAdminEvents();
+}
+
+function deleteCustomEvent(id){
+  if(!confirm('Удалить?')) return;
+  let custom = JSON.parse(localStorage.getItem('customEvents') || '[]');
+  const evt = custom.find(e => e.id === id);
+  custom = custom.filter(e => e.id !== id);
+  localStorage.setItem('customEvents', JSON.stringify(custom));
+  if(evt) allEvents = allEvents.filter(e => e.name !== evt.name || e.date.getTime() !== new Date(evt.date).getTime());
+  rebuildTicker();
+  renderAdminEvents();
+}
+
+function rebuildTicker(){
+  const now = new Date();
+  const custom = JSON.parse(localStorage.getItem('customEvents') || '[]');
+  const customEvts = custom.map(e => ({ name: e.name, date: new Date(e.date) }));
+  const all = [...allEvents.filter(e => !e.custom), ...customEvts];
+  const upcoming = all.filter(e => e.date > now).sort((a,b) => a.date - b.date);
+  if(upcoming.length){
+    tickerIndex = 0;
+    tickerMessages = upcoming.map(m => {
+      const days = Math.round((m.date - now) / 86400000);
+      return {
+        text: 'До мероприятия \u00AB' + m.name + '\u00BB осталось ' + formatRemaining(now, m.date) + ' \u00B7 ' + formatEventDate(m.date),
+        urgent: days < 14
+      };
+    });
+    document.getElementById('ddSep').style.display = 'block';
+    showNextTicker();
   }
 }
+
+// ===== ПРИЛОЖЕНИЯ =====
+function renderAdminApps(){
+  const container = document.getElementById('adAppsList');
+  const apps = JSON.parse(localStorage.getItem('customApps') || 'null');
+  // Показываем текущие приложения из DOM
+  const tiles = document.querySelectorAll('.app-tile');
+  let html = '<table class="admin-table"><thead><tr><th>Приложение</th><th>URL</th><th style="width:80px;">Действия</th></tr></thead><tbody>';
+  tiles.forEach((tile, i) => {
+    const label = tile.querySelector('.app-label')?.textContent || '';
+    const href = tile.href || '';
+    html += '<tr><td>' + esc(label) + '</td><td style="font-size:12px;">' + esc(href) + '</td><td class="actions"><span style="color:var(--text-tertiary);font-size:11px;">Встроенное</span></td></tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+// ===== КАТЕГОРИИ =====
+function renderAdminCategories(){
+  const tbody = document.getElementById('adCatTable');
+  const cats = {};
+  adminLinks.forEach(l => { cats[l.category] = (cats[l.category]||0) + 1; });
+  const names = Object.keys(cats).sort();
+  if(!names.length){
+    tbody.innerHTML = '<tr><td colspan="3" class="admin-empty">Нет категорий</td></tr>';
+    return;
+  }
+  tbody.innerHTML = names.map(name => `
+    <tr>
+      <td><strong>${esc(name)}</strong></td>
+      <td>${cats[name]}</td>
+      <td class="actions">
+        <button class="btn-sm btn-edit" onclick="renameCategory('${esc(name).replace(/'/g,"\\'")}')">Переименовать</button>
+        <button class="btn-sm btn-del" onclick="deleteCategory('${esc(name).replace(/'/g,"\\'")}')">Удалить</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function renameCategory(oldName){
+  const newName = prompt('Новое имя категории:', oldName);
+  if(!newName || newName === oldName) return;
+  const toRename = adminLinks.filter(l => l.category === oldName);
+  for(const l of toRename){
+    await fbPut('links/' + l.id, { ...l, category: newName, id: undefined });
+  }
+  await loadAdminData();
+  await loadLinksFromFirebase();
+}
+
+async function deleteCategory(name){
+  if(!confirm('Удалить категорию «' + name + '» и все её ссылки?')) return;
+  const toDel = adminLinks.filter(l => l.category === name);
+  for(const l of toDel){
+    await fetch(`${FIREBASE_URL}/links/${l.id}.json`, { method: 'DELETE' });
+  }
+  await loadAdminData();
+  await loadLinksFromFirebase();
+}
+
+// ===== НАСТРОЙКИ =====
+document.getElementById('adThemeSave').addEventListener('click', () => {
+  const theme = document.getElementById('adThemeDefault').value;
+  localStorage.setItem('dashThemeDefault', theme);
+  document.documentElement.setAttribute('data-theme', theme);
+  alert('Тема сохранена');
+});
+
+document.getElementById('adFirebaseSave')?.addEventListener('click', () => {
+  const url = document.getElementById('adFirebaseUrl').value.trim();
+  if(!url){ alert('Введите URL'); return; }
+  localStorage.setItem('dashFirebaseUrl', url);
+  alert('URL Firebase сохранён. Перезагрузите страницу.');
+});
+
+document.getElementById('adDataExport')?.addEventListener('click', async () => {
+  try{
+    const data = await fbGet('');
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'dashboard-backup-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+  }catch(e){ alert('Ошибка экспорта: ' + e.message); }
+});
+
+document.getElementById('adDataImport')?.addEventListener('click', () => {
+  document.getElementById('adDataFile').click();
+});
+document.getElementById('adDataFile')?.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if(!confirm('Заменить все данные на импортированные?')) return;
+    await fbPut('', data);
+    await loadAdminData();
+    await loadLinksFromFirebase();
+    alert('Данные импортированы');
+  }catch(err){ alert('Ошибка импорта: ' + err.message); }
+  e.target.value = '';
+});
+
+document.getElementById('adDataReset')?.addEventListener('click', async () => {
+  if(!confirm('Полный сброс — удалить ВСЕ ссылки, мероприятия, заметки из Firebase?')) return;
+  try{
+    await fetch(`${FIREBASE_URL}/links.json`, { method: 'DELETE' });
+    await fetch(`${FIREBASE_URL}/events.json`, { method: 'DELETE' });
+    await fetch(`${FIREBASE_URL}/notes.json`, { method: 'DELETE' });
+    localStorage.removeItem('customEvents');
+    await loadAdminData();
+    await loadLinksFromFirebase();
+    renderDashNotes();
+    alert('Данные сброшены');
+  }catch(e){ alert('Ошибка: ' + e.message); }
+});
+
+// ===== ЗАМЕТКИ =====
+let adminNotes = [];
+
+async function loadNotes(){
+  try{
+    const data = await fbGet('notes');
+    if(data && typeof data === 'object'){
+      adminNotes = Object.entries(data).map(([id, v]) => ({ id, ...v }));
+      adminNotes.sort((a,b) => (b.ts || 0) - (a.ts || 0));
+    } else {
+      adminNotes = [];
+    }
+  }catch(e){
+    adminNotes = [];
+  }
+  renderAdminNotes();
+  renderDashNotes();
+}
+
+function renderAdminNotes(){
+  const container = document.getElementById('adNotesList');
+  if(!container) return;
+  document.getElementById('adNoteCount').textContent = adminNotes.length;
+  if(!adminNotes.length){
+    container.innerHTML = '<p class="admin-empty">Нет заметок</p>';
+    return;
+  }
+  container.innerHTML = adminNotes.map(n => {
+    const d = n.ts ? new Date(n.ts).toLocaleDateString('ru-RU', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div class="note-card" style="border-left-color:${n.color || '#3478f6'};">
+      <div class="note-actions">
+        <button class="note-pin ${n.pinned ? 'pinned' : ''}" onclick="togglePinNote('${n.id}')" title="${n.pinned ? 'Открепить' : 'Закрепить на дашборде'}">📌</button>
+        <button class="btn-sm btn-edit" onclick="editNote('${n.id}')">Ред.</button>
+        <button class="btn-sm btn-del" onclick="deleteNote('${n.id}')">✕</button>
+      </div>
+      ${n.title ? '<p class="note-title">' + esc(n.title) + '</p>' : ''}
+      <p class="note-body">${esc(n.text)}</p>
+      <p class="note-date">${d}${n.pinned ? ' · 📌 На дашборде' : ''}</p>
+    </div>`;
+  }).join('');
+}
+
+function renderDashNotes(){
+  const pinned = adminNotes.filter(n => n.pinned);
+  const wrap = document.getElementById('dashNotes');
+  const grid = document.getElementById('dashNotesGrid');
+  if(!wrap || !grid) return;
+  if(!pinned.length){ wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  grid.innerHTML = pinned.map(n => `
+    <div class="dash-note" style="border-left-color:${n.color || '#3478f6'};">
+      ${n.title ? '<p class="dn-title">' + esc(n.title) + '</p>' : ''}
+      <p class="dn-body">${esc(n.text)}</p>
+    </div>
+  `).join('');
+}
+
+document.getElementById('adNoteAdd')?.addEventListener('click', async () => {
+  const title = document.getElementById('adNoteTitle').value.trim();
+  const text = document.getElementById('adNoteText').value.trim();
+  const color = document.getElementById('adNoteColor').value;
+  if(!text){ alert('Напиши текст заметки'); return; }
+  const id = 'note_' + Date.now();
+  const note = { title, text, color, ts: Date.now(), pinned: false };
+  try{
+    await fbPut('notes/' + id, note);
+  }catch(e){ alert('Ошибка: ' + e.message); return; }
+  document.getElementById('adNoteTitle').value = '';
+  document.getElementById('adNoteText').value = '';
+  await loadNotes();
+});
+
+async function togglePinNote(id){
+  const n = adminNotes.find(x => x.id === id);
+  if(!n) return;
+  n.pinned = !n.pinned;
+  try{ await fbPut('notes/' + id, { title: n.title, text: n.text, color: n.color, ts: n.ts, pinned: n.pinned }); }catch(e){}
+  renderAdminNotes();
+  renderDashNotes();
+}
+
+async function editNote(id){
+  const n = adminNotes.find(x => x.id === id);
+  if(!n) return;
+  const card = document.querySelector(`button[onclick="editNote('${id}')"]`)?.closest('.note-card');
+  if(!card) return;
+  card.innerHTML = `
+    <input class="admin-input" id="neT_${id}" value="${esc(n.title || '')}" placeholder="Заголовок" style="margin-bottom:8px;width:100%;">
+    <textarea class="admin-input" id="neTx_${id}" rows="3" style="resize:vertical;width:100%;margin-bottom:8px;">${esc(n.text)}</textarea>
+    <div style="display:flex;gap:8px;">
+      <button class="admin-btn" id="neSave_${id}" style="font-size:12px;padding:6px 14px;">Сохранить</button>
+      <button class="admin-btn secondary" onclick="renderAdminNotes()" style="font-size:12px;padding:6px 14px;">Отмена</button>
+    </div>`;
+  document.getElementById('neSave_' + id).onclick = async () => {
+    const t = document.getElementById('neT_' + id).value.trim();
+    const tx = document.getElementById('neTx_' + id).value.trim();
+    if(!tx){ alert('Текст не может быть пустым'); return; }
+    try{ await fbPut('notes/' + id, { title: t, text: tx, color: n.color, ts: n.ts, pinned: n.pinned }); }catch(e){}
+    await loadNotes();
+  };
+}
+
+async function deleteNote(id){
+  if(!confirm('Удалить заметку?')) return;
+  try{ await fetch(`${FIREBASE_URL}/notes/${id}.json`, { method: 'DELETE' }); }catch(e){}
+  await loadNotes();
+}
+  if(!confirm('УДАЛИТЬ ВСЕ ДАННЫЕ? Это необратимо!')) return;
+  if(!confirm('Вы уверены? Будут удалены все ссылки, настройки и мероприятия.')) return;
+  try{
+    await fetch(`${FIREBASE_URL}/.json`, { method: 'DELETE' });
+    localStorage.clear();
+    location.reload();
+  }catch(e){ alert('Ошибка: ' + e.message); }
+});
+
+// Загрузка темы по умолчанию при старте
+(function(){
+  const saved = localStorage.getItem('dashThemeDefault');
+  document.documentElement.setAttribute('data-theme', saved || 'construct');
+})();
 
 // ===== КОСМОС =====
 (function(){
@@ -1749,17 +2315,23 @@ async function deleteAdminLink(id){
   resize();
 
   function isDark(){
-    return document.documentElement.getAttribute('data-theme') === 'dark';
+    const t = document.documentElement.getAttribute('data-theme');
+    return t === 'dark' || t === 'construct';
+  }
+  function isConstruct(){
+    return document.documentElement.getAttribute('data-theme') === 'construct';
   }
 
-  // Звёзды — 140 мерцающих точек
-  for(let i = 0; i < 140; i++){
+  // Звёзды — 200 штук, координаты 0..1 (относительные)
+  for(let i = 0; i < 200; i++){
+    const isBig = i >= 170;
     stars.push({
-      x: Math.random() * 4000,
-      y: Math.random() * 4000,
-      r: Math.random() * 1.4 + 0.2,
+      xf: Math.random(),
+      yf: Math.random(),
+      r: isBig ? (Math.random() * 2.2 + 2.0) : (Math.random() * 1.6 + 0.5),
       phase: Math.random() * Math.PI * 2,
-      speed: Math.random() * 0.008 + 0.002
+      speed: isBig ? (Math.random() * 0.004 + 0.001) : (Math.random() * 0.007 + 0.002),
+      big: isBig
     });
   }
 
@@ -1768,10 +2340,10 @@ async function deleteAdminLink(id){
     particles.push({
       x: Math.random() * 4000,
       y: Math.random() * 4000,
-      r: Math.random() * 1.6 + 0.4,
+      r: Math.random() * 2.0 + 0.6,
       vx: (Math.random() - 0.5) * 0.2,
       vy: Math.random() * 0.12 + 0.03,
-      alpha: Math.random() * 0.25 + 0.08
+      alpha: Math.random() * 0.3 + 0.1
     });
   }
 
@@ -1845,20 +2417,34 @@ async function deleteAdminLink(id){
     { xF:0.5,  yF:0.55, r:320, c:'25,50,130',  a:0.05 },
     { xF:0.85, yF:0.65, r:200, c:'10,30,90',   a:0.06 },
     { xF:0.1,  yF:0.75, r:250, c:'20,45,110',  a:0.05 },
-    // Лёгкий фиолетовый оттенок
     { xF:0.6,  yF:0.3,  r:200, c:'40,25,100',  a:0.04 },
     { xF:0.35, yF:0.7,  r:180, c:'30,20,90',   a:0.035 },
-    // Большая центральная дымка
     { xF:0.5,  yF:0.4,  r:400, c:'15,30,80',   a:0.03 },
   ];
+  // Construct — глубоководный сине-бирюзовый
+  const constructNebulaeDef = [
+    { xF:0.15, yF:0.2,  r:300, c:'10,50,70',   a:0.09 },
+    { xF:0.8,  yF:0.12, r:250, c:'15,60,80',   a:0.07 },
+    { xF:0.5,  yF:0.5,  r:350, c:'8,45,65',    a:0.06 },
+    { xF:0.85, yF:0.7,  r:220, c:'12,55,75',   a:0.07 },
+    { xF:0.1,  yF:0.8,  r:260, c:'10,40,60',   a:0.06 },
+    { xF:0.65, yF:0.35, r:200, c:'20,65,85',   a:0.05 },
+    { xF:0.3,  yF:0.65, r:180, c:'15,50,70',   a:0.05 },
+    { xF:0.5,  yF:0.3,  r:420, c:'8,35,55',    a:0.035},
+    // Лёгкая тёплая подсветка (как на референсе — тёплые боке)
+    { xF:0.7,  yF:0.8,  r:120, c:'60,40,30',   a:0.025 },
+    { xF:0.25, yF:0.9,  r:100, c:'50,35,25',   a:0.02 },
+  ];
   let darkNebulaCanvas = null;
+  let darkNebulaTheme = null; // 'dark' | 'construct'
 
-  function buildDarkNebula(){
+  function buildDarkNebula(forConstruct){
     darkNebulaCanvas = document.createElement('canvas');
     darkNebulaCanvas.width = W;
     darkNebulaCanvas.height = H;
     const nc = darkNebulaCanvas.getContext('2d');
-    darkNebulaeDef.forEach(n => {
+    const defs = forConstruct ? constructNebulaeDef : darkNebulaeDef;
+    defs.forEach(n => {
       const x = n.xF * W;
       const y = n.yF * H;
       const g = nc.createRadialGradient(x, y, 0, x, y, n.r);
@@ -1870,43 +2456,175 @@ async function deleteAdminLink(id){
       nc.fillStyle = g;
       nc.fill();
     });
+    darkNebulaTheme = forConstruct ? 'construct' : 'dark';
+  }
+
+  // ===== PLEXUS / CONSTELLATION NETWORK (construct тема) =====
+  const PLEXUS_CONNECT_DIST = 180;
+  const PLEXUS_NODE_COUNT = 75;
+  const BOKEH_COUNT = 18;
+
+  const plexusNodes = [];
+  for(let i = 0; i < PLEXUS_NODE_COUNT; i++){
+    plexusNodes.push({
+      xf: Math.random(), yf: Math.random(),
+      vxf: (Math.random()-0.5)*0.00018, vyf: (Math.random()-0.5)*0.00014,
+      r: Math.random()*2+0.8,
+      life: 0.2+Math.random()*0.8, lifeDir: 1,
+      lifeSpeed: 0.0006+Math.random()*0.0008,
+      maxLife: 0.55+Math.random()*0.45, pause: 0
+    });
+  }
+
+  const bokehDots = [];
+  for(let i = 0; i < BOKEH_COUNT; i++){
+    bokehDots.push({
+      xf: Math.random(), yf: Math.random(),
+      r: 12+Math.random()*30,
+      vxf: (Math.random()-0.5)*0.00006, vyf: (Math.random()-0.5)*0.00005,
+      phase: Math.random()*Math.PI*2, speed: 0.0004+Math.random()*0.0008,
+      hue: Math.floor(Math.random()*3),
+      maxAlpha: 0.06+Math.random()*0.1
+    });
+  }
+
+  function drawPlexus(t){
+    // Обновляем ноды (всё в относительных координатах 0..1)
+    plexusNodes.forEach(n => {
+      if(n.pause > 0){ n.pause -= 16; return; }
+      n.xf += n.vxf; n.yf += n.vyf;
+      if(n.xf > 1.03) n.xf = -0.03;
+      if(n.xf < -0.03) n.xf = 1.03;
+      if(n.yf > 1.03) n.yf = -0.03;
+      if(n.yf < -0.03) n.yf = 1.03;
+
+      n.life += n.lifeDir * n.lifeSpeed * 16;
+      if(n.life >= n.maxLife) n.lifeDir = -1;
+      if(n.life <= 0){
+        n.life = 0; n.lifeDir = 1;
+        n.pause = 800 + Math.random()*3000;
+        n.xf = Math.random(); n.yf = Math.random();
+        n.vxf = (Math.random()-0.5)*0.00018;
+        n.vyf = (Math.random()-0.5)*0.00014;
+        n.maxLife = 0.55+Math.random()*0.45;
+      }
+    });
+
+    // Живые ноды → экранные координаты
+    const alive = [];
+    plexusNodes.forEach(n => {
+      if(n.life > 0.05 && n.pause <= 0){
+        alive.push({ x: n.xf*W, y: n.yf*H, r: n.r, life: n.life });
+      }
+    });
+
+    // Линии между близкими нодами
+    ctx.lineWidth = 0.8;
+    for(let i = 0; i < alive.length; i++){
+      const a = alive[i];
+      for(let j = i+1; j < alive.length; j++){
+        const b = alive[j];
+        const dx = a.x-b.x, dy = a.y-b.y;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        if(dist < PLEXUS_CONNECT_DIST){
+          const lineAlpha = (1-dist/PLEXUS_CONNECT_DIST) * Math.min(a.life,b.life) * 0.45;
+          ctx.strokeStyle = `rgba(150,210,230,${lineAlpha})`;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Ноды (точки со свечением)
+    alive.forEach(n => {
+      const alpha = n.life * 0.9;
+      const gr = ctx.createRadialGradient(n.x,n.y,0, n.x,n.y, n.r*5);
+      gr.addColorStop(0, `rgba(170,220,245,${alpha*0.4})`);
+      gr.addColorStop(0.5, `rgba(170,220,245,${alpha*0.12})`);
+      gr.addColorStop(1, 'rgba(170,220,245,0)');
+      ctx.beginPath(); ctx.arc(n.x,n.y, n.r*5, 0, Math.PI*2);
+      ctx.fillStyle = gr; ctx.fill();
+      ctx.beginPath(); ctx.arc(n.x,n.y, n.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(210,240,255,${alpha})`; ctx.fill();
+    });
+
+    // Боке
+    bokehDots.forEach(b => {
+      b.xf += b.vxf; b.yf += b.vyf;
+      if(b.xf > 1.05) b.xf = -0.05;
+      if(b.xf < -0.05) b.xf = 1.05;
+      if(b.yf > 1.05) b.yf = -0.05;
+      if(b.yf < -0.05) b.yf = 1.05;
+      const bx = b.xf*W, by = b.yf*H;
+
+      const pulse = 0.5+0.5*Math.sin(t*b.speed+b.phase);
+      const alpha = b.maxAlpha * pulse;
+      const c = b.hue===0?'120,185,225':b.hue===1?'210,175,150':'195,205,215';
+      const gr = ctx.createRadialGradient(bx,by,0, bx,by,b.r);
+      gr.addColorStop(0, `rgba(${c},${alpha})`);
+      gr.addColorStop(0.6, `rgba(${c},${alpha*0.3})`);
+      gr.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.arc(bx,by,b.r,0,Math.PI*2);
+      ctx.fillStyle = gr; ctx.fill();
+    });
   }
 
   function draw(t){
     ctx.clearRect(0, 0, W, H);
     const dark = isDark();
 
-    // ===== Туманности (светлая тема) =====
+    const construct = isConstruct();
+    // ===== Туманности =====
     if(!dark){
+      // Светлая тема
       if(!nebulaCanvas || lastThemeWasNebula !== 'light'){
         buildNebula();
         lastThemeWasNebula = 'light';
       }
       ctx.drawImage(nebulaCanvas, 0, 0);
     } else {
-      // ===== Глубокие синие туманности (тёмная тема) =====
-      if(!darkNebulaCanvas || lastThemeWasNebula !== 'dark'){
-        buildDarkNebula();
-        lastThemeWasNebula = 'dark';
+      // Тёмная или Construct
+      const neededTheme = construct ? 'construct' : 'dark';
+      if(!darkNebulaCanvas || darkNebulaTheme !== neededTheme){
+        buildDarkNebula(construct);
       }
+      lastThemeWasNebula = neededTheme;
       ctx.drawImage(darkNebulaCanvas, 0, 0);
+      // Plexus constellation — ТОЛЬКО в construct теме
+      if(construct) drawPlexus(t);
     }
 
     // Звёзды
     stars.forEach(s => {
-      const twinkle = 0.3 + 0.7 * ((Math.sin(t * s.speed + s.phase) + 1) / 2);
-      const x = s.x % W;
-      const y = s.y % H;
-      ctx.beginPath();
-      ctx.arc(x, y, s.r, 0, Math.PI * 2);
+      const twinkle = 0.4 + 0.6 * ((Math.sin(t * s.speed + s.phase) + 1) / 2);
+      const x = s.xf * W;
+      const y = s.yf * H;
       if(dark){
-        // Слегка голубоватые звёзды для глубокого синего космоса
         const blue = 200 + Math.floor(twinkle * 55);
         ctx.fillStyle = `rgba(${200 + Math.floor(twinkle*30)},${210 + Math.floor(twinkle*25)},${blue},${twinkle * 0.75})`;
+        ctx.beginPath();
+        ctx.arc(x, y, s.r * 0.7, 0, Math.PI * 2);
+        ctx.fill();
       } else {
-        ctx.fillStyle = `rgba(100,80,160,${twinkle * 0.4})`;
+        // Светлая тема — хорошо видимые тёмные звёзды
+        if(s.big){
+          // Крупные — свечение
+          const glow = ctx.createRadialGradient(x, y, 0, x, y, s.r * 3.5);
+          glow.addColorStop(0, `rgba(40,35,80,${twinkle * 0.35})`);
+          glow.addColorStop(0.5, `rgba(40,35,80,${twinkle * 0.1})`);
+          glow.addColorStop(1, 'rgba(40,35,80,0)');
+          ctx.beginPath();
+          ctx.arc(x, y, s.r * 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = glow;
+          ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.arc(x, y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(40,35,80,${twinkle * 0.85})`;
+        ctx.fill();
       }
-      ctx.fill();
     });
 
     // Космическая пыль
@@ -1922,7 +2640,7 @@ async function deleteAdminLink(id){
       if(dark){
         ctx.fillStyle = `rgba(100,150,255,${p.alpha * 1.4})`;
       } else {
-        ctx.fillStyle = `rgba(120,90,180,${p.alpha * 0.55})`;
+        ctx.fillStyle = `rgba(50,40,100,${p.alpha * 0.7})`;
       }
       ctx.fill();
     });
