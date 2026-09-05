@@ -220,12 +220,12 @@ textarea.ad-input{resize:vertical;min-height:60px}
     <div class="admin-sec active" data-sec="links">
       <div class="admin-card"><h3>Добавить ссылку</h3>
         <div class="admin-row"><select class="ad-select" id="adLnkCat"></select><input class="ad-input" id="adLnkNewCat" placeholder="Или новая категория" style="flex:.6"></div>
-        <div class="admin-row"><input class="ad-input" id="adLnkTitle" placeholder="Название"><input class="ad-input" id="adLnkUrl" placeholder="URL"></div>
+        <div class="admin-row"><input class="ad-input" id="adLnkTitle" placeholder="Название"><input class="ad-input" id="adLnkUrl" placeholder="URL"><input type="color" id="adLnkColor" value="#3478f6" title="Цвет кнопки" style="width:36px;height:34px;padding:2px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--panel)"></div>
         <button class="ad-btn" id="adLnkAdd">Добавить</button>
       </div>
       <div class="admin-card"><h3>Все ссылки <span id="adLnkCount" style="color:var(--text3)"></span></h3>
         <input class="ad-input" id="adLnkSearch" placeholder="Поиск…" style="margin-bottom:8px;max-width:260px">
-        <table class="ad-table"><thead><tr><th>Название</th><th>Категория</th><th>URL</th><th style="width:120px">Действия</th></tr></thead><tbody id="adLnkTable"></tbody></table>
+        <table class="ad-table"><thead><tr><th>Название</th><th>Категория</th><th>Цвет</th><th>URL</th><th style="width:120px">Действия</th></tr></thead><tbody id="adLnkTable"></tbody></table>
       </div>
     </div>
 
@@ -380,7 +380,7 @@ function render(q){
     if(!filtered.length)return;
     found+=filtered.length;
     html+=`<div class="cat-section"><div class="cat-title">${esc(cat.name)}</div><div class="cat-links">${filtered.map(l=>{
-      const color=hashColor(l.title);
+      const color=l.color||'#3478f6';
       const letter=l.title.charAt(0).toUpperCase();
       return `<a class="link" href="${esc(l.url)}" target="_blank"><div class="link-icon" style="background:${color}">${letter}</div><span class="link-name">${esc(l.title)}</span></a>`;
     }).join('')}</div></div>`;
@@ -405,7 +405,7 @@ function updateSync(state){
 // ===== LOAD LINKS =====
 function useBuiltIn(){
   const m=new Map();
-  INITIAL_LINKS.forEach(l=>{if(!m.has(l.c))m.set(l.c,[]);m.get(l.c).push({title:l.t,url:l.u})});
+  INITIAL_LINKS.forEach(l=>{if(!m.has(l.c))m.set(l.c,[]);m.get(l.c).push({title:l.t,url:l.u,color:''})});
   linksData=Array.from(m.entries()).map(([name,links])=>({name,links}));
   render('');updateSync('done');
 }
@@ -428,7 +428,7 @@ async function loadLinks(){
       const cat=(l.category||'Без категории').trim(),title=(l.title||'').trim(),url=(l.url||'').trim();
       if(!title||!url)return;
       if(!m.has(cat))m.set(cat,[]);
-      m.get(cat).push({title,url});
+      m.get(cat).push({title,url,color:l.color||''});
     });
     linksData=Array.from(m.entries()).map(([name,links])=>({name,links}));
     // apply saved order
@@ -486,7 +486,8 @@ function populateEvPanel(){
   if(!allEvents.length){panel.innerHTML='<p style="color:var(--text3);font-size:13px">Нет мероприятий</p>';return}
   panel.innerHTML=allEvents.sort((a,b)=>a.date-b.date).map(e=>{
     const past=e.date<today;
-    return `<div class="ev-row${past?' past':'"}"><span class="ev-name">${esc(e.name)}</span><span class="ev-date">${formatEvDate(e.date)}</span></div>`;
+    const cls=past?'ev-row past':'ev-row';
+    return `<div class="${cls}"><span class="ev-name">${esc(e.name)}</span><span class="ev-date">${formatEvDate(e.date)}</span></div>`;
   }).join('');
 }
 
@@ -613,22 +614,34 @@ function renderAdminLinks(){
   const q=(document.getElementById('adLnkSearch').value||'').toLowerCase();
   const filtered=q?adminLinks.filter(l=>l.title.toLowerCase().includes(q)||l.category.toLowerCase().includes(q)):adminLinks;
   document.getElementById('adLnkCount').textContent=`(${adminLinks.length})`;
-  document.getElementById('adLnkTable').innerHTML=filtered.map(l=>`<tr><td>${esc(l.title)}</td><td>${esc(l.category)}</td><td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.url)}</td><td class="acts"><button class="btn-sm" onclick="editLink('${l.id}')">Ред.</button> <button class="btn-sm del" onclick="delLink('${l.id}')">✕</button></td></tr>`).join('');
+  document.getElementById('adLnkTable').innerHTML=filtered.map(l=>{
+    const clr=l.color||'#3478f6';
+    return `<tr><td>${esc(l.title)}</td><td>${esc(l.category)}</td><td><div style="width:22px;height:22px;border-radius:5px;background:${clr};cursor:pointer;border:1px solid var(--border)" title="${clr}" onclick="changeColor('${l.id}')"></div></td><td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.url)}</td><td class="acts"><button class="btn-sm" onclick="editLink('${l.id}')">Ред.</button> <button class="btn-sm del" onclick="delLink('${l.id}')">✕</button></td></tr>`;
+  }).join('');
 }
 document.getElementById('adLnkSearch').oninput=()=>renderAdminLinks();
 document.getElementById('adLnkAdd').onclick=async()=>{
   const cat=document.getElementById('adLnkNewCat').value.trim()||document.getElementById('adLnkCat').value;
-  const t=document.getElementById('adLnkTitle').value.trim(),u=document.getElementById('adLnkUrl').value.trim();
+  const t=document.getElementById('adLnkTitle').value.trim(),u=document.getElementById('adLnkUrl').value.trim(),clr=document.getElementById('adLnkColor').value;
   if(!cat||!t||!u){alert('Заполни все поля');return}
-  try{await fbPut('links/link_'+Date.now(),{category:cat,title:t,url:u});document.getElementById('adLnkTitle').value='';document.getElementById('adLnkUrl').value='';document.getElementById('adLnkNewCat').value='';await loadLinks();await loadAdminData()}catch(e){alert('Ошибка: '+e.message)}
+  try{await fbPut('links/link_'+Date.now(),{category:cat,title:t,url:u,color:clr});document.getElementById('adLnkTitle').value='';document.getElementById('adLnkUrl').value='';document.getElementById('adLnkNewCat').value='';await loadLinks();await loadAdminData()}catch(e){alert('Ошибка: '+e.message)}
 };
 async function editLink(id){
   const l=adminLinks.find(x=>x.id===id);if(!l)return;
   const row=document.querySelector(`button[onclick="editLink('${id}')"]`)?.closest('tr');if(!row)return;
-  row.innerHTML=`<td><input class="ad-input" id="eT${id}" value="${esc(l.title)}" style="margin:0"></td><td><input class="ad-input" id="eC${id}" value="${esc(l.category)}" style="margin:0"></td><td><input class="ad-input" id="eU${id}" value="${esc(l.url)}" style="margin:0;font-size:11px"></td><td class="acts"><button class="btn-sm" style="color:#34c759" id="eS${id}">✓</button> <button class="btn-sm" onclick="renderAdminLinks()">✕</button></td>`;
-  document.getElementById('eS'+id).onclick=async()=>{const t=document.getElementById('eT'+id).value.trim(),c=document.getElementById('eC'+id).value.trim(),u=document.getElementById('eU'+id).value.trim();if(!t||!c||!u)return;try{await fbPut('links/'+id,{category:c,title:t,url:u});await loadLinks();await loadAdminData()}catch(e){alert(e.message)}};
+  row.innerHTML=`<td><input class="ad-input" id="eT${id}" value="${esc(l.title)}" style="margin:0"></td><td><input class="ad-input" id="eC${id}" value="${esc(l.category)}" style="margin:0"></td><td><input type="color" id="eClr${id}" value="${l.color||'#3478f6'}" style="width:30px;height:28px;padding:1px;border:1px solid var(--border);border-radius:5px;cursor:pointer;background:var(--panel)"></td><td><input class="ad-input" id="eU${id}" value="${esc(l.url)}" style="margin:0;font-size:11px"></td><td class="acts"><button class="btn-sm" style="color:#34c759" id="eS${id}">✓</button> <button class="btn-sm" onclick="renderAdminLinks()">✕</button></td>`;
+  document.getElementById('eS'+id).onclick=async()=>{const t=document.getElementById('eT'+id).value.trim(),c=document.getElementById('eC'+id).value.trim(),u=document.getElementById('eU'+id).value.trim(),clr=document.getElementById('eClr'+id).value;if(!t||!c||!u)return;try{await fbPut('links/'+id,{category:c,title:t,url:u,color:clr});await loadLinks();await loadAdminData()}catch(e){alert(e.message)}};
 }
 async function delLink(id){if(!confirm('Удалить?'))return;try{await fetch(`${FIREBASE_URL}/links/${id}.json`,{method:'DELETE'});await loadLinks();await loadAdminData()}catch(e){alert(e.message)}}
+function changeColor(id){
+  const l=adminLinks.find(x=>x.id===id);if(!l)return;
+  const inp=document.createElement('input');inp.type='color';inp.value=l.color||'#3478f6';
+  inp.addEventListener('input',async()=>{
+    l.color=inp.value;
+    try{await fbPut('links/'+id,{category:l.category,title:l.title,url:l.url,color:inp.value});await loadLinks();renderAdminLinks()}catch(e){}
+  });
+  inp.click();
+}
 function renderAdminEvents(){
   const now=new Date();now.setHours(0,0,0,0);
   document.getElementById('adEvtTable').innerHTML=allEvents.sort((a,b)=>a.date-b.date).map(e=>{
@@ -722,7 +735,7 @@ document.getElementById('adReset').onclick=async()=>{if(!confirm('Удалить
 // ===== COSMOS =====
 (function(){
 const cv=document.getElementById('cosmos'),cx=cv.getContext('2d');
-let W,H;
+let W,H,nebBuf=null,dnBuf=null,lastNT='';
 function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;nebBuf=null;dnBuf=null}
 addEventListener('resize',resize);resize();
 function theme(){return document.documentElement.getAttribute('data-theme')||'construct'}
@@ -742,7 +755,6 @@ const bokeh=[];for(let i=0;i<18;i++)bokeh.push({x:Math.random()*3e3,y:Math.rando
 const lightNeb=[{xF:.75,yF:.18,r:220,c:'150,120,200',a:.045},{xF:.15,yF:.7,r:200,c:'140,200,190',a:.04},{xF:.5,yF:.45,r:250,c:'130,180,160',a:.03},{xF:.12,yF:.15,r:180,c:'140,170,220',a:.035},{xF:.5,yF:.35,r:350,c:'160,180,140',a:.018},{xF:.3,yF:.25,r:140,c:'160,150,200',a:.025},{xF:.65,yF:.6,r:110,c:'155,145,195',a:.022}];
 const darkNeb=[{xF:.2,yF:.25,r:280,c:'20,40,120',a:.07},{xF:.75,yF:.15,r:240,c:'15,35,100',a:.06},{xF:.5,yF:.55,r:320,c:'25,50,130',a:.05},{xF:.85,yF:.65,r:200,c:'10,30,90',a:.06},{xF:.1,yF:.75,r:250,c:'20,45,110',a:.05},{xF:.5,yF:.4,r:400,c:'15,30,80',a:.03}];
 const constNeb=[{xF:.15,yF:.2,r:300,c:'10,50,70',a:.09},{xF:.8,yF:.12,r:250,c:'15,60,80',a:.07},{xF:.5,yF:.5,r:350,c:'8,45,65',a:.06},{xF:.85,yF:.7,r:220,c:'12,55,75',a:.07},{xF:.1,yF:.8,r:260,c:'10,40,60',a:.06},{xF:.65,yF:.35,r:200,c:'20,65,85',a:.05},{xF:.5,yF:.3,r:420,c:'8,35,55',a:.035},{xF:.7,yF:.8,r:120,c:'60,40,30',a:.025}];
-let nebBuf=null,dnBuf=null,lastNT='';
 function buildNeb(defs){const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');defs.forEach(n=>{const px=n.xF*W,py=n.yF*H,g=x.createRadialGradient(px,py,0,px,py,n.r);g.addColorStop(0,`rgba(${n.c},${n.a})`);g.addColorStop(.5,`rgba(${n.c},${n.a*.5})`);g.addColorStop(1,`rgba(${n.c},0)`);x.beginPath();x.arc(px,py,n.r,0,Math.PI*2);x.fillStyle=g;x.fill()});return c}
 // Shooting stars
 const shoots=[];let nextShoot=5e3+Math.random()*8e3;
