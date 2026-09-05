@@ -674,8 +674,16 @@ function renderAdminApps(){
 function delApp(i){if(!confirm('Удалить '+APPS[i].n+'?'))return;APPS.splice(i,1);saveApps();renderApps();renderAdminApps()}
 function saveApps(){try{fbPut('dashboard/apps',APPS)}catch(e){};localStorage.setItem('dashApps',JSON.stringify(APPS))}
 async function loadApps(){
-  try{const d=await fbGet('dashboard/apps');if(d&&Array.isArray(d)&&d.length){APPS=d;renderApps();return}}catch(e){}
-  try{const s=localStorage.getItem('dashApps');if(s){const d=JSON.parse(s);if(d.length){APPS=d;renderApps()}}}catch(e){}
+  try{
+    const d=await fbGet('dashboard/apps');
+    if(d){
+      let arr=d;
+      if(!Array.isArray(d)&&typeof d==='object')arr=Object.values(d);
+      if(Array.isArray(arr)&&arr.length&&arr[0]&&arr[0].n){APPS=arr;renderApps();return}
+    }
+  }catch(e){}
+  try{const s=localStorage.getItem('dashApps');if(s){const d=JSON.parse(s);if(Array.isArray(d)&&d.length&&d[0]&&d[0].n){APPS=d;renderApps();return}}}catch(e){}
+  renderApps(); // fallback: рендерим дефолтные APPS
 }
 loadApps();
 document.getElementById('adAppAdd').onclick=()=>{
