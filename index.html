@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💲</text></svg>">
-<title>Дашборд v3.3</title>
+<title>Дашборд v4.0</title>
 <style>
 :root{--bg:#f8f9fa;--panel:#fff;--text:#1d1d1f;--text2:#6e6e73;--text3:#a1a1a6;--accent:#0071e3;--border:rgba(0,0,0,.06);--shadow:0 1px 3px rgba(0,0,0,.04),0 2px 10px rgba(0,0,0,.03);--shadow-h:0 2px 8px rgba(0,0,0,.07)}
 html[data-theme="dark"]{--bg:#080e1e;--panel:#0f1729;--text:#e0e6f0;--text2:#8a95aa;--text3:#4d5872;--border:rgba(100,140,255,.08);--shadow:none;--shadow-h:none}
@@ -203,7 +203,7 @@ textarea.ad-input{resize:vertical;min-height:60px}
   <div class="cats" id="content"></div>
   <p id="emptyState" style="display:none;text-align:center;color:var(--text3);padding:32px 0;font-size:14px">Ничего не найдено</p>
   <div class="dash-notes" id="dashNotes" style="display:none"><h3>📌 Заметки</h3><div class="notes-grid" id="dashNotesGrid"></div></div>
-  <div style="text-align:center;padding:40px 0 10px;font-size:10px;color:var(--text3);opacity:.5">💲 Dashboard v3.3</div>
+  <div style="text-align:center;padding:40px 0 10px;font-size:10px;color:var(--text3);opacity:.5">💲 Dashboard v4.0</div>
 </div>
 
 <!-- ADMIN PAGE -->
@@ -293,13 +293,12 @@ textarea.ad-input{resize:vertical;min-height:60px}
 
 <script>
 // ===== CONFIG =====
-const FIREBASE_URL='https://slava-22b68-default-rtdb.firebaseio.com';
-const SHEET_ID='1a_yEwDhiAfUonqoPorNj47n6ViBizJmn8v4jQjxVSgM';
-const SHEET_GID='0';
 let syncCount=0,linksData=[],allEvents=[],tickerMsgs=[],tickIdx=0,tTimer1=null,tTimer2=null,dragMode=false,currentQuery='',adminLinks=[];
 const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
-async function fbGet(p){const r=await fetch(`${FIREBASE_URL}/${p}.json`);if(!r.ok)throw new Error(r.status);return r.json()}
-async function fbPut(p,v){const r=await fetch(`${FIREBASE_URL}/${p}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(v)});if(!r.ok)throw new Error(r.status);return r.json()}
+// ===== STORAGE: localStorage only =====
+const SK={links:'d_links',apps:'d_apps',events:'d_events',notes:'d_notes',order:'d_order',sync:'d_sync'};
+function stGet(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+function stSet(k,v){localStorage.setItem(k,JSON.stringify(v))}
 
 // ===== DEFAULT APPS =====
 let APPS=[
@@ -406,40 +405,21 @@ function updateSync(state){
 
 // ===== LOAD LINKS =====
 function useBuiltIn(){
-  const m=new Map();
-  INITIAL_LINKS.forEach(l=>{if(!m.has(l.c))m.set(l.c,[]);m.get(l.c).push({title:l.t,url:l.u,color:''})});
-  linksData=Array.from(m.entries()).map(([name,links])=>({name,links}));
-  render('');updateSync('done');
+  adminLinks=INITIAL_LINKS.map((l,i)=>({id:'lnk_'+i,category:l.c,title:l.t,url:l.u,color:'#3478f6'}));
+  stSet(SK.links,adminLinks);
 }
-async function loadLinks(){
-  updateSync('load');
-  try{
-    // seed if empty
-    const check=await fbGet('links');
-    if(!check||Object.keys(check).length===0){
-      for(let i=0;i<INITIAL_LINKS.length;i++){
-        await fbPut('links/link_'+i,{category:INITIAL_LINKS[i].c,title:INITIAL_LINKS[i].t,url:INITIAL_LINKS[i].u});
-      }
-    }
-    const data=await fbGet('links');
-    if(!data||Object.keys(data).length===0){useBuiltIn();return}
-    const items=Object.entries(data);
-    adminLinks=items.map(([id,v])=>({id,...v}));
-    const m=new Map();
-    items.forEach(([id,l])=>{
-      const cat=(l.category||'Без категории').trim(),title=(l.title||'').trim(),url=(l.url||'').trim();
-      if(!title||!url)return;
-      if(!m.has(cat))m.set(cat,[]);
-      m.get(cat).push({title,url,color:l.color||''});
-    });
-    linksData=Array.from(m.entries()).map(([name,links])=>({name,links}));
-    // apply saved order
-    try{const order=await fbGet('dashboard/order');if(order&&Array.isArray(order)){
-      linksData.sort((a,b)=>{const ia=order.indexOf(a.name),ib=order.indexOf(b.name);return(ia===-1?999:ia)-(ib===-1?999:ib)});
-    }}catch(e){}
-    try{syncCount=(await fbGet('dashboard/syncCount'))||0}catch(e){}
-    render('');updateSync('done');
-  }catch(e){console.error('[links]',e);useBuiltIn()}
+function linksToCategories(){
+  const m=new Map(),order=stGet(SK.order)||[];
+  adminLinks.forEach(l=>{if(!l.title)return;const cat=l.category||'—';if(!m.has(cat))m.set(cat,[]);m.get(cat).push({title:l.title,url:l.url,color:l.color||'#3478f6'})});
+  linksData=Array.from(m.entries()).map(([name,links])=>({name,links}));
+  if(order.length)linksData.sort((a,b)=>{const ia=order.indexOf(a.name),ib=order.indexOf(b.name);return(ia===-1?99:ia)-(ib===-1?99:ib)});
+}
+function loadLinks(){
+  const stored=stGet(SK.links);
+  if(stored&&stored.length){adminLinks=stored}else{useBuiltIn()}
+  linksToCategories();
+  syncCount=stGet(SK.sync)||0;
+  render('');updateSync('done');
 }
 
 // ===== TICKER =====
@@ -494,85 +474,18 @@ function populateEvPanel(){
 }
 
 // ===== ROADMAP PARSER =====
-const MONTHS_RU={янв:0,фев:1,мар:2,апр:3,мая:4,май:4,июн:5,июл:6,авг:7,сен:8,окт:9,ноя:10,дек:11};
-function findMonth(s){if(!s)return null;const sl=s.toString().toLowerCase().replace(/[^а-яa-z]/g,'');for(const[k,v]of Object.entries(MONTHS_RU))if(sl.includes(k))return v;return null}
-function processCSV(csv){
-  try{
-    const rows=csv.split('\n').map(r=>{const out=[];let cur='',inQ=false;
-      for(let i=0;i<r.length;i++){const ch=r[i];if(ch==='"'){inQ=!inQ}else if(ch===','&&!inQ){out.push(cur.trim());cur=''}else cur+=ch}
-      out.push(cur.trim());return out.map(v=>v.replace(/^"|"$/g,'').replace(/""/g,'"'))});
-    if(rows.length<3)return;
-    const monthRow=0,dayRow=1,baseYear=new Date().getFullYear();
-    // Pass 1: explicit month labels
-    const anchors=[];
-    for(let c=0;c<rows[monthRow].length;c++){const m=findMonth(rows[monthRow][c]);if(m!==null)anchors.push({col:c,month:m})}
-    // Pass 2: build colDate
-    const colDate={};
-    let curM=null,year=baseYear,prevM=null,lastDay=null;
-    for(let c=0;c<(rows[dayRow]||[]).length;c++){
-      const anc=anchors.find(a=>a.col===c);
-      if(anc){curM=anc.month;lastDay=null}
-      const dv=parseInt(rows[dayRow][c],10);
-      if(isNaN(dv))continue;
-      if(curM===null)continue;
-      if(!anc&&lastDay!==null&&dv<lastDay)curM=(curM+1)%12;
-      if(prevM!==null&&curM<prevM)year++;
-      prevM=curM;lastDay=dv;
-      colDate[c]=new Date(year,curM,dv);
-    }
-    const events=[];
-    for(let r=2;r<rows.length;r++){
-      const name=(rows[r][1]||'').trim();if(!name)continue;
-      for(let c=2;c<rows[r].length;c++){
-        if(rows[r][c]&&rows[r][c].trim()==='!'&&colDate[c]){
-          events.push({name,date:colDate[c]});
-        }
-      }
-    }
-    if(events.length){
-      allEvents=allEvents.filter(e=>e.custom);
-      events.forEach(e=>allEvents.push(e));
-      rebuildTicker();populateEvPanel();
-    }
-  }catch(e){console.error('[roadmap]',e)}
-}
-function loadRoadmap(){
-  window.google=window.google||{};window.google.visualization=window.google.visualization||{};
-  window.google.visualization.Query=window.google.visualization.Query||{};
-  window.google.visualization.Query.setResponse=function(resp){
-    if(!resp||resp.status!=='ok')return;
-    const rows=resp.table.rows.map(r=>(r.c||[]).map(c=>(c&&(c.f||c.v)!=null)?String(c.f||c.v):''));
-    const csv=rows.map(r=>r.map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
-    processCSV(csv);
-  };
-  const s=document.createElement('script');
-  s.src=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${SHEET_GID}&headers=0&tqx=out:json`;
-  let loaded=false;s.onload=()=>{loaded=true};
-  s.onerror=()=>{fetchCSVProxy()};
-  document.body.appendChild(s);
-  setTimeout(()=>{if(!loaded)fetchCSVProxy()},4000);
-}
-function fetchCSVProxy(){
-  fetch(`https://corsproxy.io/?${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`)}`)
-    .then(r=>r.ok?r.text():Promise.reject()).then(t=>processCSV(t)).catch(e=>console.error('[roadmap proxy]',e));
-}
 
 // ===== INIT =====
 allEvents=FALLBACK_EVENTS.slice().map((e,i)=>({...e,id:'fb_'+i}));
-try{const ce=JSON.parse(localStorage.getItem('customEvents')||'[]');ce.forEach(e=>allEvents.push({name:e.name,date:new Date(e.date),custom:true,id:e.id}))}catch(e){}
-// Also load custom events from Firebase
-(async()=>{try{const d=await fbGet('events');if(d&&typeof d==='object'){Object.entries(d).forEach(([id,v])=>{
-  if(!allEvents.find(e=>e.id===id)){allEvents.push({name:v.name,date:new Date(v.date),custom:true,id})}
-});rebuildTicker();populateEvPanel()}}catch(e){}})();
+const storedEvts=stGet(SK.events)||[];
+storedEvts.forEach(e=>allEvents.push({name:e.name,date:new Date(e.date),custom:true,id:e.id}));
+function saveEvents(){stSet(SK.events,allEvents.filter(e=>e.custom).map(e=>({id:e.id,name:e.name,date:e.date.toISOString().split('T')[0]})))}
 rebuildTicker();populateEvPanel();
-loadLinks().then(()=>loadRoadmap());
+loadLinks();
 
 // ===== NOTES =====
-let notes=[];
-async function loadNotes(){
-  try{const d=await fbGet('notes');if(d&&typeof d==='object'){notes=Object.entries(d).map(([id,v])=>({id,...v}));notes.sort((a,b)=>(b.ts||0)-(a.ts||0))}else notes=[]}catch(e){notes=[]}
-  renderDashNotes();
-}
+let notes=stGet(SK.notes)||[];
+function saveNotes(){stSet(SK.notes,notes)}
 function renderDashNotes(){
   const pinned=notes.filter(n=>n.pinned);
   const w=document.getElementById('dashNotes'),g=document.getElementById('dashNotesGrid');
@@ -580,7 +493,7 @@ function renderDashNotes(){
   w.style.display='block';
   g.innerHTML=pinned.map(n=>`<div class="d-note" style="border-left-color:${n.color||'#3478f6'}">${n.title?'<p class="dn-t">'+esc(n.title)+'</p>':''}<p class="dn-b">${esc(n.text)}</p></div>`).join('');
 }
-loadNotes();
+renderDashNotes();
 
 // ===== UI EVENTS =====
 document.getElementById('gearBtn').onclick=()=>document.getElementById('gearDD').classList.toggle('open');
@@ -596,7 +509,7 @@ function applyCustomBg(){
   else{el.style.backgroundImage='none'}
 }
 applyCustomBg();
-document.getElementById('syncBtn').onclick=async()=>{updateSync('load');try{syncCount++;await fbPut('dashboard/syncCount',syncCount);await fbPut('dashboard/order',linksData.map(c=>c.name));updateSync('done')}catch(e){updateSync('err')}};
+document.getElementById('syncBtn').onclick=()=>{syncCount++;stSet(SK.sync,syncCount);stSet(SK.order,linksData.map(c=>c.name));updateSync('done')};
 document.getElementById('openAdmin').onclick=()=>{document.getElementById('adminPage').classList.add('open');document.getElementById('gearDD').classList.remove('open');loadAdminData()};
 document.getElementById('adminBack').onclick=()=>document.getElementById('adminPage').classList.remove('open');
 // Admin tabs
@@ -608,34 +521,11 @@ document.querySelectorAll('.admin-tab').forEach(t=>t.onclick=()=>{
 });
 
 // ===== ADMIN =====
-async function loadAdminData(){
-  // Если adminLinks пуст — загружаем из Firebase
-  if(!adminLinks.length){
-    try{
-      const d=await fbGet('links');
-      if(d&&typeof d==='object'){
-        adminLinks=Object.entries(d).map(([id,v])=>({id,...v}));
-      }
-    }catch(e){
-      // Если Firebase недоступен — собираем из linksData (которые уже загружены на дашборд)
-      if(linksData.length&&!adminLinks.length){
-        let idx=0;
-        linksData.forEach(cat=>cat.links.forEach(l=>{
-          adminLinks.push({id:'fallback_'+(idx++),category:cat.name,title:l.title,url:l.url,color:l.color||''});
-        }));
-      }
-    }
-  }
-  // Заполняем категорию-селект для быстрого добавления
-  const cats2=[...new Set(adminLinks.map(l=>l.category))];
+function loadAdminData(){
+  const cats2=[...new Set(adminLinks.map(l=>(l&&l.category)||'—'))];
   const qCat=document.getElementById('adQCat');
   if(qCat)qCat.innerHTML=cats2.map(c=>`<option>${esc(c)}</option>`).join('');
-
-  renderAdminLinks();
-  renderAdminEvents();
-  renderAdminApps();
-  renderAdminCats();
-  renderAdminNotes();
+  renderAdminLinks();renderAdminEvents();renderAdminApps();renderAdminCats();renderAdminNotes();
   document.getElementById('adTheme').value=localStorage.getItem('dashTheme')||'construct';
 }
 function renderAdminLinks(){
@@ -676,21 +566,21 @@ document.getElementById('adLnkAdd').onclick=async()=>{
   const cat=document.getElementById('adLnkNewCat').value.trim()||document.getElementById('adLnkCat').value;
   const t=document.getElementById('adLnkTitle').value.trim(),u=document.getElementById('adLnkUrl').value.trim(),clr=document.getElementById('adLnkColor').value;
   if(!cat||!t||!u){alert('Заполни все поля');return}
-  try{await fbPut('links/link_'+Date.now(),{category:cat,title:t,url:u,color:clr});document.getElementById('adLnkTitle').value='';document.getElementById('adLnkUrl').value='';document.getElementById('adLnkNewCat').value='';await loadLinks();await loadAdminData()}catch(e){alert('Ошибка: '+e.message)}
+  const nid='lnk_'+Date.now();adminLinks.push({id:nid,category:cat,title:t,url:u,color:clr});saveLinks();linksToCategories();document.getElementById('adLnkTitle').value='';document.getElementById('adLnkUrl').value='';document.getElementById('adLnkNewCat').value='';render('');loadAdminData();
 };
 async function editLink(id){
   const l=adminLinks.find(x=>x.id===id);if(!l)return;
   const row=document.querySelector(`button[onclick="editLink('${id}')"]`)?.closest('tr');if(!row)return;
   row.innerHTML=`<td><input class="ad-input" id="eT${id}" value="${esc(l.title)}" style="margin:0"></td><td><input class="ad-input" id="eC${id}" value="${esc(l.category)}" style="margin:0"></td><td><input type="color" id="eClr${id}" value="${l.color||'#3478f6'}" style="width:30px;height:28px;padding:1px;border:1px solid var(--border);border-radius:5px;cursor:pointer;background:var(--panel)"></td><td><input class="ad-input" id="eU${id}" value="${esc(l.url)}" style="margin:0;font-size:11px"></td><td class="acts"><button class="btn-sm" style="color:#34c759" id="eS${id}">✓</button> <button class="btn-sm" onclick="renderAdminLinks()">✕</button></td>`;
-  document.getElementById('eS'+id).onclick=async()=>{const t=document.getElementById('eT'+id).value.trim(),c=document.getElementById('eC'+id).value.trim(),u=document.getElementById('eU'+id).value.trim(),clr=document.getElementById('eClr'+id).value;if(!t||!c||!u)return;try{await fbPut('links/'+id,{category:c,title:t,url:u,color:clr});await loadLinks();await loadAdminData()}catch(e){alert(e.message)}};
+  document.getElementById('eS'+id).onclick=()=>{const t=document.getElementById('eT'+id).value.trim(),c=document.getElementById('eC'+id).value.trim(),u=document.getElementById('eU'+id).value.trim(),clr=document.getElementById('eClr'+id).value;if(!t||!c||!u)return;const li=adminLinks.findIndex(x=>x.id===id);if(li>=0){adminLinks[li]={id,category:c,title:t,url:u,color:clr};saveLinks();linksToCategories();render('');loadAdminData()}};
 }
-async function delLink(id){if(!confirm('Удалить?'))return;try{await fetch(`${FIREBASE_URL}/links/${id}.json`,{method:'DELETE'});await loadLinks();await loadAdminData()}catch(e){alert(e.message)}}
+function delLink(id){if(!confirm('Удалить?'))return;adminLinks=adminLinks.filter(l=>l.id!==id);saveLinks();linksToCategories();render('');loadAdminData()}
 function changeColor(id){
   const l=adminLinks.find(x=>x.id===id);if(!l)return;
   const inp=document.createElement('input');inp.type='color';inp.value=l.color||'#3478f6';
   inp.addEventListener('input',async()=>{
     l.color=inp.value;
-    try{await fbPut('links/'+id,{category:l.category,title:l.title,url:l.url,color:inp.value});await loadLinks();renderAdminLinks()}catch(e){}
+    const ci=adminLinks.findIndex(x=>x.id===id);if(ci>=0){adminLinks[ci].color=inp.value;saveLinks();linksToCategories();render('');renderAdminLinks()}
   });
   inp.click();
 }
@@ -715,13 +605,13 @@ document.getElementById('adEvtAdd').onclick=async()=>{
   const n=document.getElementById('adEvtName').value.trim(),d=document.getElementById('adEvtDate').value;
   if(!n||!d){alert('Заполни все поля');return}
   const id='evt_'+Date.now();
-  try{await fbPut('events/'+id,{name:n,date:d})}catch(e){}
+  
   const ce=JSON.parse(localStorage.getItem('customEvents')||'[]');ce.push({id,name:n,date:d});localStorage.setItem('customEvents',JSON.stringify(ce));
   allEvents.push({name:n,date:new Date(d),custom:true,id});rebuildTicker();populateEvPanel();renderAdminEvents();
   document.getElementById('adEvtName').value='';document.getElementById('adEvtDate').value='';
 };
 async function delEvent(id){
-  try{await fetch(`${FIREBASE_URL}/events/${id}.json`,{method:'DELETE'})}catch(e){}
+  
   const ce=JSON.parse(localStorage.getItem('customEvents')||'[]').filter(e=>e.id!==id);localStorage.setItem('customEvents',JSON.stringify(ce));
   allEvents=allEvents.filter(e=>e.id!==id);rebuildTicker();populateEvPanel();renderAdminEvents();
 }
@@ -732,18 +622,11 @@ function renderAdminApps(){
   if(sel){const cats=[...new Set(linksData.map(c=>c.name))];sel.innerHTML=cats.map(c=>`<option>${esc(c)}</option>`).join('')}
 }
 function delApp(i){if(!confirm('Удалить '+APPS[i].n+'?'))return;APPS.splice(i,1);saveApps();renderApps();renderAdminApps()}
-function saveApps(){try{fbPut('dashboard/apps',APPS)}catch(e){};localStorage.setItem('dashApps',JSON.stringify(APPS))}
-async function loadApps(){
-  try{
-    const d=await fbGet('dashboard/apps');
-    if(d){
-      let arr=d;
-      if(!Array.isArray(d)&&typeof d==='object')arr=Object.values(d);
-      if(Array.isArray(arr)&&arr.length&&arr[0]&&arr[0].n){APPS=arr;renderApps();return}
-    }
-  }catch(e){}
-  try{const s=localStorage.getItem('dashApps');if(s){const d=JSON.parse(s);if(Array.isArray(d)&&d.length&&d[0]&&d[0].n){APPS=d;renderApps();return}}}catch(e){}
-  renderApps(); // fallback: рендерим дефолтные APPS
+function saveApps(){stSet(SK.apps,APPS)}
+function loadApps(){
+  const d=stGet(SK.apps);
+  if(d&&Array.isArray(d)&&d.length&&d[0]&&d[0].n){APPS=d}
+  renderApps();
 }
 loadApps();
 document.getElementById('adAppAdd').onclick=()=>{
@@ -752,16 +635,16 @@ document.getElementById('adAppAdd').onclick=()=>{
   document.getElementById('adAppName').value='';document.getElementById('adAppUrl').value='';document.getElementById('adAppLetter').value='';
 };
 // Quick-add link from Apps tab
-document.getElementById('adQAdd').onclick=async()=>{
+document.getElementById('adQAdd').onclick=()=>{
   const cat=document.getElementById('adQCat').value,t=document.getElementById('adQTitle').value.trim(),u=document.getElementById('adQUrl').value.trim();
   if(!cat||!t||!u){alert('Заполни все поля');return}
-  try{await fbPut('links/link_'+Date.now(),{category:cat,title:t,url:u});document.getElementById('adQTitle').value='';document.getElementById('adQUrl').value='';await loadLinks();await loadAdminData()}catch(e){alert(e.message)}
+  adminLinks.push({id:'lnk_'+Date.now(),category:cat,title:t,url:u,color:'#3478f6'});saveLinks();linksToCategories();document.getElementById('adQTitle').value='';document.getElementById('adQUrl').value='';render('');loadAdminData();
 };
 function renderAdminCats(){
   document.getElementById('adCatTable').innerHTML=linksData.map(c=>`<tr><td>${esc(c.name)}</td><td>${c.links.length}</td><td class="acts"><button class="btn-sm" onclick="renameCat('${esc(c.name)}')">Переим.</button> <button class="btn-sm del" onclick="delCat('${esc(c.name)}')">Удалить</button></td></tr>`).join('');
 }
-async function renameCat(old){const n=prompt('Новое имя:',old);if(!n||n===old)return;for(const l of adminLinks)if(l.category===old){try{await fbPut('links/'+l.id,{...l,category:n,id:undefined})}catch(e){}}await loadLinks();await loadAdminData()}
-async function delCat(name){if(!confirm(`Удалить категорию "${name}" и все ссылки?`))return;for(const l of adminLinks)if(l.category===name){try{await fetch(`${FIREBASE_URL}/links/${l.id}.json`,{method:'DELETE'})}catch(e){}}await loadLinks();await loadAdminData()}
+function renameCat(old){const n=prompt('Новое имя:',old);if(!n||n===old)return;adminLinks.forEach(l=>{if(l.category===old)l.category=n});saveLinks();linksToCategories();render('');loadAdminData()}
+function delCat(name){if(!confirm('Удалить категорию и все ссылки?'))return;adminLinks=adminLinks.filter(l=>l.category!==name);saveLinks();linksToCategories();render('');loadAdminData()}
 // Admin Notes
 function renderAdminNotes(){
   document.getElementById('adNoteCount').textContent=`(${notes.length})`;
@@ -773,12 +656,12 @@ function renderAdminNotes(){
 document.getElementById('adNoteAdd').onclick=async()=>{
   const t=document.getElementById('adNoteTitle').value.trim(),tx=document.getElementById('adNoteText').value.trim(),c=document.getElementById('adNoteColor').value;
   if(!tx){alert('Напиши текст');return}
-  try{await fbPut('notes/note_'+Date.now(),{title:t,text:tx,color:c,ts:Date.now(),pinned:false})}catch(e){alert(e.message);return}
+  notes.push({id:'n_'+Date.now(),title:t,text:tx,color:c,ts:Date.now(),pinned:false});saveNotes()
   document.getElementById('adNoteTitle').value='';document.getElementById('adNoteText').value='';
-  await loadNotes();renderAdminNotes();
+  renderAdminNotes();renderDashNotes();
 };
-async function togglePin(id){const n=notes.find(x=>x.id===id);if(!n)return;n.pinned=!n.pinned;try{await fbPut('notes/'+id,{title:n.title,text:n.text,color:n.color,ts:n.ts,pinned:n.pinned})}catch(e){}renderAdminNotes();renderDashNotes()}
-async function delNote(id){if(!confirm('Удалить?'))return;try{await fetch(`${FIREBASE_URL}/notes/${id}.json`,{method:'DELETE'})}catch(e){}await loadNotes();renderAdminNotes()}
+function togglePin(id){const n=notes.find(x=>x.id===id);if(!n)return;n.pinned=!n.pinned;saveNotes();renderAdminNotes();renderDashNotes()}
+function delNote(id){if(!confirm('Удалить?'))return;notes=notes.filter(x=>x.id!==id);saveNotes();renderAdminNotes();renderDashNotes()}
 // Settings
 document.getElementById('adThemeSave').onclick=()=>{const t=document.getElementById('adTheme').value;localStorage.setItem('dashTheme',t);document.documentElement.setAttribute('data-theme',t);applyCustomBg()};
 // Custom BG handlers
@@ -796,10 +679,10 @@ function loadCustomBgAdmin(){
   document.getElementById('adCustomBgDim').value=dim;
   document.getElementById('adCustomBgDimVal').textContent=dim+'%';
 }
-document.getElementById('adExport').onclick=async()=>{try{const d=await fbGet('');const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='dashboard-backup.json';a.click()}catch(e){alert(e.message)}};
+document.getElementById('adExport').onclick=()=>{const d={links:adminLinks,apps:APPS,events:allEvents.filter(e=>e.custom),notes};const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='dashboard-backup.json';a.click()};
 document.getElementById('adImportBtn').onclick=()=>document.getElementById('adImportFile').click();
-document.getElementById('adImportFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;const t=await f.text();try{const d=JSON.parse(t);for(const[k,v]of Object.entries(d))await fbPut(k,v);await loadLinks();await loadNotes();await loadAdminData();alert('Импорт выполнен')}catch(e){alert(e.message)}};
-document.getElementById('adReset').onclick=async()=>{if(!confirm('Удалить ВСЕ данные?'))return;try{await fetch(`${FIREBASE_URL}/.json`,{method:'DELETE'});localStorage.removeItem('customEvents');await loadLinks();await loadNotes();await loadAdminData();alert('Сброшено')}catch(e){alert(e.message)}};
+document.getElementById('adImportFile').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{const d=JSON.parse(t);if(d.links){adminLinks=d.links;saveLinks()}if(d.apps){APPS=d.apps;saveApps()}if(d.notes){notes=d.notes;saveNotes()}linksToCategories();render('');renderApps();renderDashNotes();loadAdminData();alert('Импорт выполнен')}).catch(e=>alert(e.message))};
+document.getElementById('adReset').onclick=()=>{if(!confirm('Удалить ВСЕ данные?'))return;Object.values(SK).forEach(k=>localStorage.removeItem(k));adminLinks=[];notes=[];useBuiltIn();linksToCategories();render('');renderDashNotes();loadAdminData();alert('Сброшено')};
 // ===== COSMOS =====
 (function(){
 const cv=document.getElementById('cosmos'),cx=cv.getContext('2d');
