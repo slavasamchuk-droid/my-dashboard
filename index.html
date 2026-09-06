@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💲</text></svg>">
-<title>Дашборд v3.1</title>
+<title>Дашборд v3.2</title>
 <style>
 :root{--bg:#f8f9fa;--panel:#fff;--text:#1d1d1f;--text2:#6e6e73;--text3:#a1a1a6;--accent:#0071e3;--border:rgba(0,0,0,.06);--shadow:0 1px 3px rgba(0,0,0,.04),0 2px 10px rgba(0,0,0,.03);--shadow-h:0 2px 8px rgba(0,0,0,.07)}
 html[data-theme="dark"]{--bg:#080e1e;--panel:#0f1729;--text:#e0e6f0;--text2:#8a95aa;--text3:#4d5872;--border:rgba(100,140,255,.08);--shadow:none;--shadow-h:none}
@@ -203,7 +203,7 @@ textarea.ad-input{resize:vertical;min-height:60px}
   <div class="cats" id="content"></div>
   <p id="emptyState" style="display:none;text-align:center;color:var(--text3);padding:32px 0;font-size:14px">Ничего не найдено</p>
   <div class="dash-notes" id="dashNotes" style="display:none"><h3>📌 Заметки</h3><div class="notes-grid" id="dashNotesGrid"></div></div>
-  <div style="text-align:center;padding:40px 0 10px;font-size:10px;color:var(--text3);opacity:.5">💲 Dashboard v3.1</div>
+  <div style="text-align:center;padding:40px 0 10px;font-size:10px;color:var(--text3);opacity:.5">💲 Dashboard v3.2</div>
 </div>
 
 <!-- ADMIN PAGE -->
@@ -639,15 +639,37 @@ async function loadAdminData(){
   document.getElementById('adTheme').value=localStorage.getItem('dashTheme')||'construct';
 }
 function renderAdminLinks(){
-  const cats=[...new Set(adminLinks.map(l=>l.category))];
+  try{
+  const cats=[...new Set(adminLinks.filter(l=>l&&l.category).map(l=>l.category))];
   document.getElementById('adLnkCat').innerHTML=cats.map(c=>`<option>${esc(c)}</option>`).join('');
   const q=(document.getElementById('adLnkSearch').value||'').toLowerCase();
-  const filtered=q?adminLinks.filter(l=>l.title.toLowerCase().includes(q)||l.category.toLowerCase().includes(q)):adminLinks;
+  const filtered=q?adminLinks.filter(l=>l&&l.title&&(l.title.toLowerCase().includes(q)||l.category.toLowerCase().includes(q))):adminLinks.filter(l=>l&&l.title);
   document.getElementById('adLnkCount').textContent=`(${adminLinks.length})`;
-  document.getElementById('adLnkTable').innerHTML=filtered.map(l=>{
+  const rows=[];
+  for(let i=0;i<filtered.length;i++){
+    const l=filtered[i];
+    if(!l||!l.id||!l.title)continue;
     const clr=l.color||'#3478f6';
-    return `<tr><td>${esc(l.title)}</td><td>${esc(l.category)}</td><td><div style="width:22px;height:22px;border-radius:5px;background:${clr};cursor:pointer;border:1px solid var(--border)" title="${clr}" onclick="changeColor('${l.id}')"></div></td><td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.url)}</td><td class="acts"><button class="btn-sm" onclick="editLink('${l.id}')">Ред.</button> <button class="btn-sm del" onclick="delLink('${l.id}')">✕</button></td></tr>`;
-  }).join('');
+    const sid=String(l.id).replace(/'/g,"\\'");
+    rows.push(`<tr>
+      <td>${esc(l.title)}</td>
+      <td>${esc(l.category||'')}</td>
+      <td><div style="width:22px;height:22px;border-radius:5px;background:${clr};cursor:pointer;border:1px solid var(--border)" title="${clr}" data-id="${esc(l.id)}" class="clr-pick"></div></td>
+      <td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.url||'')}</td>
+      <td class="acts"><button class="btn-sm" data-edit="${esc(l.id)}">Ред.</button> <button class="btn-sm del" data-del="${esc(l.id)}">✕</button></td>
+    </tr>`);
+  }
+  document.getElementById('adLnkTable').innerHTML=rows.join('');
+  // Bind events via delegation
+  document.getElementById('adLnkTable').onclick=function(e){
+    const edit=e.target.closest('[data-edit]');
+    if(edit){editLink(edit.dataset.edit);return}
+    const del=e.target.closest('[data-del]');
+    if(del){delLink(del.dataset.del);return}
+    const clr=e.target.closest('.clr-pick');
+    if(clr){changeColor(clr.dataset.id);return}
+  };
+  }catch(err){console.error('[renderAdminLinks]',err);document.getElementById('adLnkTable').innerHTML='<tr><td colspan="5" style="color:#ff3b30">Ошибка рендера: '+esc(err.message)+'</td></tr>'}
 }
 document.getElementById('adLnkSearch').oninput=()=>renderAdminLinks();
 document.getElementById('adLnkAdd').onclick=async()=>{
@@ -673,13 +695,21 @@ function changeColor(id){
   inp.click();
 }
 function renderAdminEvents(){
+  try{
   const now=new Date();now.setHours(0,0,0,0);
-  document.getElementById('adEvtTable').innerHTML=allEvents.sort((a,b)=>a.date-b.date).map(e=>{
+  const sorted=allEvents.filter(e=>e&&e.name&&e.date).sort((a,b)=>a.date-b.date);
+  const rows=sorted.map(e=>{
     const d=Math.round((e.date-now)/86400000);
     const badge=d<0?'<span class="ev-badge past">Прошло</span>':d<14?'<span class="ev-badge soon">'+d+' дн.</span>':'<span class="ev-badge future">'+d+' дн.</span>';
-    const acts=e.custom?`<button class="btn-sm del" onclick="delEvent('${e.id}')">✕</button>`:'<span style="font-size:10px;color:var(--text3)">Таблица</span>';
+    const acts=e.custom?`<button class="btn-sm del" data-evdel="${esc(e.id||'')}">✕</button>`:'<span style="font-size:10px;color:var(--text3)">Таблица</span>';
     return `<tr><td>${esc(e.name)}</td><td>${e.date.toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric'})}</td><td>${badge}</td><td class="acts">${acts}</td></tr>`;
-  }).join('');
+  });
+  document.getElementById('adEvtTable').innerHTML=rows.join('');
+  document.getElementById('adEvtTable').onclick=function(ev){
+    const btn=ev.target.closest('[data-evdel]');
+    if(btn)delEvent(btn.dataset.evdel);
+  };
+  }catch(err){console.error('[renderAdminEvents]',err)}
 }
 document.getElementById('adEvtAdd').onclick=async()=>{
   const n=document.getElementById('adEvtName').value.trim(),d=document.getElementById('adEvtDate').value;
